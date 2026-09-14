@@ -1,0 +1,359 @@
+/* ==========================================================
+   Tokens
+   ========================================================== */
+:root {
+  --canvas: #ede7d8;
+  --paper: #f7f3e9;
+  --ink: #26241f;
+  --ink-soft: #5c574a;
+  --chambray: #3e5c76;
+  --chambray-deep: #2c4258;
+  --thread: #a13d2b;
+  --line: #cfc7ae;
+
+  --font-display: "Zilla Slab", "Iowan Old Style", serif;
+  --font-body: "Archivo", "Helvetica Neue", sans-serif;
+
+  --notch: 22px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+a { color: inherit; text-decoration: none; }
+img, svg { display: block; max-width: 100%; }
+button, input, select { font-family: inherit; font-size: inherit; color: inherit; }
+
+.wrap {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+@media (max-width: 640px) { .wrap { padding: 0 20px; } }
+
+/* ==========================================================
+   The tag motif — signature device, reused everywhere
+   ========================================================== */
+.tag {
+  position: relative;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  clip-path: polygon(var(--notch) 0, 100% 0, 100% 100%, 0 100%, 0 var(--notch));
+}
+
+.tag::before {
+  /* the punched grommet hole near the cut corner */
+  content: "";
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-soft);
+  background: var(--canvas);
+}
+
+/* ==========================================================
+   Header
+   ========================================================== */
+.site-header {
+  border-bottom: 1px solid var(--line);
+  padding: 24px 0;
+}
+.site-header .wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 24px;
+}
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.4rem;
+}
+.wordmark small {
+  display: block;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  margin-top: 3px;
+}
+.site-nav {
+  display: flex;
+  gap: 26px;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+.site-nav a:hover { color: var(--chambray); }
+
+/* ==========================================================
+   Hero
+   ========================================================== */
+.hero {
+  padding: 60px 0;
+  border-bottom: 1px solid var(--line);
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 48px;
+  align-items: start;
+}
+@media (max-width: 800px) { .hero-grid { grid-template-columns: 1fr; gap: 32px; } }
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.1rem, 4.4vw, 3.1rem);
+  line-height: 1.15;
+  margin: 0 0 16px;
+  max-width: 18ch;
+}
+.hero p {
+  max-width: 46ch;
+  color: var(--ink-soft);
+  font-size: 1.02rem;
+}
+
+/* the hero's trust message, delivered as a literal shipping/garment tag */
+.hero-tag {
+  padding: 22px 22px 18px;
+}
+.hero-tag .tag-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.tag-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px dashed var(--line);
+  font-size: 0.86rem;
+}
+.tag-row:first-of-type { border-top: none; }
+.tag-row .k { color: var(--ink-soft); }
+.tag-row .v { text-align: right; font-weight: 500; }
+
+/* ==========================================================
+   Filters
+   ========================================================== */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 26px;
+  padding: 26px 0;
+  border-bottom: 1px solid var(--line);
+}
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.filter-field label {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+.filter-field select {
+  background: none;
+  border: none;
+  border-bottom: 1.5px solid var(--ink);
+  padding: 4px 0;
+  cursor: pointer;
+  min-width: 130px;
+}
+.filter-field select:focus-visible {
+  outline: 2px solid var(--chambray);
+  outline-offset: 3px;
+}
+.result-count {
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+/* ==========================================================
+   Catalog grid
+   ========================================================== */
+.catalog {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 26px;
+  margin: 30px 0 84px;
+}
+@media (max-width: 900px) { .catalog { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .catalog { grid-template-columns: 1fr; } }
+
+.item-card {
+  display: block;
+}
+.item-photo {
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-bottom: 1px dashed var(--line);
+}
+.item-photo svg { width: 100%; height: 100%; }
+
+.item-info { padding: 16px 18px 18px; }
+.item-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.08rem;
+  margin-bottom: 10px;
+}
+
+.spec-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  padding: 5px 0;
+  border-top: 1px solid var(--line);
+}
+.spec-row:first-of-type { border-top: none; }
+.spec-row .k { color: var(--ink-soft); }
+.spec-row .v { font-weight: 500; }
+.spec-row .v.rent { color: var(--thread); }
+.spec-row .v.buy { color: var(--chambray-deep); }
+
+.empty-state {
+  grid-column: 1 / -1;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--ink-soft);
+  border: 1px dashed var(--line);
+}
+
+/* ==========================================================
+   Item detail page
+   ========================================================== */
+.breadcrumb {
+  padding-top: 26px;
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+}
+.breadcrumb a:hover { color: var(--chambray); }
+
+.detail {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 52px;
+  padding: 40px 0 100px;
+}
+@media (max-width: 820px) { .detail { grid-template-columns: 1fr; gap: 30px; padding-top: 24px; } }
+
+.detail-photo {
+  aspect-ratio: 4 / 5;
+}
+.detail-photo svg { width: 100%; height: 100%; }
+
+.detail-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 2rem;
+  margin: 0 0 6px;
+}
+.detail-desc {
+  color: var(--ink-soft);
+  max-width: 52ch;
+  margin: 14px 0 22px;
+}
+
+.spec-sheet { margin-bottom: 26px; }
+.spec-sheet .spec-row { font-size: 0.9rem; padding: 9px 0; }
+
+.mode-tabs {
+  display: flex;
+  gap: 22px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 20px;
+}
+.mode-tabs button {
+  background: none;
+  border: none;
+  padding: 10px 0;
+  font-size: 0.94rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.mode-tabs button.active {
+  color: var(--ink);
+  border-bottom-color: var(--thread);
+  font-weight: 500;
+}
+
+.order-panel { margin-bottom: 22px; }
+.order-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.order-row label { font-size: 0.86rem; color: var(--ink-soft); }
+.order-panel select {
+  background: none;
+  border: none;
+  border-bottom: 1.5px solid var(--ink);
+  padding: 5px 2px;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.cta {
+  width: 100%;
+  background: var(--chambray);
+  color: var(--paper);
+  border: none;
+  padding: 14px;
+  font-size: 1rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 18px;
+}
+.cta:hover { background: var(--chambray-deep); }
+
+.routing-stub {
+  margin-top: 22px;
+  padding: 14px 16px;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  border-top: 1px dashed var(--line);
+}
+.routing-stub strong { color: var(--ink); font-weight: 500; }
+
+/* ==========================================================
+   Footer
+   ========================================================== */
+.site-footer {
+  border-top: 1px solid var(--line);
+  padding: 26px 0 40px;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WearShare — rent or buy secondhand, anonymously</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="wrap">
+      <div class="wordmark">WearShare<small>rent it or buy it, no names attached</small></div>
+      <nav class="site-nav">
+        <a href="index.html">Browse the closet</a>
+        <a href="#" onclick="alert('Provider intake form — built in a later step.'); return false;">Send us your clothes</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <h1>Someone already loved these. Now it's your turn.</h1>
+        <p>
+          We take in real clothes from real people, photograph and list every piece ourselves, and
+          ship every order out. Whoever sent it in and whoever ends up with it never trade names.
+        </p>
+      </div>
+      <div class="hero-tag tag">
+        <div class="tag-title">How every order moves</div>
+        <div class="tag-row"><span class="k">From</span><span class="v">Anonymous</span></div>
+        <div class="tag-row"><span class="k">To</span><span class="v">You</span></div>
+        <div class="tag-row"><span class="k">Handled by</span><span class="v">Us, door to door</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="filters">
+      <div class="filter-field">
+        <label for="f-category">Category</label>
+        <select id="f-category"><option value="">All</option></select>
+      </div>
+      <div class="filter-field">
+        <label for="f-size">Size</label>
+        <select id="f-size"><option value="">All</option></select>
+      </div>
+      <div class="filter-field">
+        <label for="f-mode">Looking to</label>
+        <select id="f-mode">
+          <option value="">Rent or buy</option>
+          <option value="rent">Rent</option>
+          <option value="buy">Buy</option>
+        </select>
+      </div>
+      <span class="result-count" id="result-count"></span>
+    </div>
+
+    <div class="catalog" id="catalog-grid"></div>
+  </div>
+
+  <footer class="site-footer">
+    <span>WearShare — a rental &amp; resale closet, run anonymously.</span>
+    <span>Prototype build — catalog data is illustrative.</span>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
