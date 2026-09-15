@@ -345,6 +345,119 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
 .routing-stub strong { color: var(--ink); font-weight: 500; }
 
 /* ==========================================================
+   Intake form
+   ========================================================== */
+.intake-hero { padding: 44px 0 6px; }
+.intake-hero h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.9rem, 4vw, 2.7rem);
+  line-height: 1.15;
+  margin: 0 0 14px;
+  max-width: 22ch;
+}
+.intake-hero p { color: var(--ink-soft); max-width: 58ch; }
+
+.intake-form { padding: 22px 0 100px; max-width: 620px; }
+
+fieldset { border: none; padding: 0; margin: 0 0 38px; }
+
+.section-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin: 0 0 4px;
+}
+.section-sub { color: var(--ink-soft); font-size: 0.86rem; margin: 0 0 20px; }
+
+.form-group { margin-bottom: 18px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 560px) { .form-row { grid-template-columns: 1fr; } }
+
+label { display: block; font-size: 0.84rem; color: var(--ink-soft); margin-bottom: 6px; }
+label .req { color: var(--thread); }
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="date"],
+input[type="number"],
+select,
+textarea {
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1.5px solid var(--ink);
+  color: var(--ink);
+  padding: 8px 2px;
+  font-size: 0.96rem;
+  font-family: inherit;
+}
+textarea {
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 10px 12px;
+  resize: vertical;
+  min-height: 84px;
+}
+
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--chambray);
+  outline-offset: 2px;
+}
+input.field-error, select.field-error, textarea.field-error { border-color: var(--thread); }
+
+.error-text { color: var(--thread); font-size: 0.8rem; margin-top: 6px; display: none; }
+.error-text.show { display: block; }
+
+.radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+.radio-option {
+  border: 1px solid var(--line);
+  padding: 9px 16px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+.radio-option input { display: none; }
+.radio-option:has(input:checked) {
+  border-color: var(--thread);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.hint { color: var(--ink-soft); font-size: 0.78rem; margin-top: 5px; }
+
+.conditional-field { display: none; }
+.conditional-field.visible { display: block; }
+
+.form-note {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  margin-top: 14px;
+  border-top: 1px dashed var(--line);
+  padding-top: 14px;
+}
+.form-note strong { color: var(--ink); font-weight: 500; }
+
+/* Confirmation, shown as an actual tag once submitted */
+.confirmation { padding: 28px 26px; }
+.confirmation h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  margin: 0 0 8px;
+}
+.confirmation .ref { color: var(--thread); font-weight: 600; }
+.confirmation .spec-row { font-size: 0.88rem; }
+.confirmation p { color: var(--ink-soft); }
+.confirmation .cta {
+  display: inline-block;
+  width: auto;
+  text-decoration: none;
+  margin-top: 10px;
+}
+
+/* ==========================================================
    Footer
    ========================================================== */
 .site-footer {

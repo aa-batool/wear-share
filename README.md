@@ -30,7 +30,7 @@ Full reasoning for each choice is in `docs/tech-stack-document.md`.
 ## Project Structure
 
 ```
-wear-share/
+closet-app/
 ├── frontend/              # Static pages served to shoppers and providers
 │   ├── index.html         # Catalog / browse page
 │   ├── item.html          # Item detail page
@@ -117,6 +117,7 @@ A running note of what's actually been built, so this README stays honest about 
 
 - [x] Project skeleton (`frontend/`, `backend/`, env template, gitignore)
 - [x] Shopper-facing frontend: catalog browse page + item detail page (mock data, no backend yet)
+- [x] Provider-facing frontend: "send us your clothes" intake form (mock submit, no backend yet)
 - [ ] Database schema created (`backend/db`)
 - [ ] Backend server serving static frontend
 - [ ] Public API: browse catalog, item detail

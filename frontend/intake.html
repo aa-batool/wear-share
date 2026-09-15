@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Send us your clothes — WearShare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="wrap">
+      <div class="wordmark">WearShare<small>rent it or buy it, no names attached</small></div>
+      <nav class="site-nav">
+        <a href="index.html">Browse the closet</a>
+        <a href="intake.html">Send us your clothes</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="breadcrumb"><a href="index.html">Browse the closet</a> / Send us your clothes</div>
+
+    <section class="intake-hero">
+      <h1>Tell us what you're sending in.</h1>
+      <p>
+        One item per form. Once it reaches us, we photograph it, write the listing, and handle
+        everything after that — you won't hear from or talk to whoever ends up renting or buying it.
+      </p>
+    </section>
+
+    <div id="form-wrap" class="intake-form">
+      <form id="intake-form" novalidate>
+
+        <fieldset>
+          <h2 class="section-heading">About the item</h2>
+          <p class="section-sub">What is it, and what shape is it in?</p>
+
+          <div class="form-group">
+            <label for="item-name">What is it? <span class="req">*</span></label>
+            <input type="text" id="item-name" placeholder="e.g. Navy blue silk wrap dress" />
+            <div class="error-text" id="err-item-name">Tell us what the item is.</div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="category">Category <span class="req">*</span></label>
+              <select id="category">
+                <option value="">Select one</option>
+                <option>Dresses</option>
+                <option>Outerwear</option>
+                <option>Tops</option>
+                <option>Skirts</option>
+                <option>Other</option>
+              </select>
+              <div class="error-text" id="err-category">Choose a category.</div>
+            </div>
+            <div class="form-group">
+              <label for="size">Size <span class="req">*</span></label>
+              <input type="text" id="size" placeholder="e.g. M, or UK 10" />
+              <div class="error-text" id="err-size">Let us know the size.</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="brand">Brand (optional)</label>
+              <input type="text" id="brand" placeholder="e.g. Zara, or unbranded" />
+            </div>
+            <div class="form-group">
+              <label for="condition">Condition <span class="req">*</span></label>
+              <select id="condition">
+                <option value="">Select one</option>
+                <option>Excellent</option>
+                <option>Very good</option>
+                <option>Good</option>
+                <option>Fair</option>
+              </select>
+              <div class="error-text" id="err-condition">Give us a sense of its condition.</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="notes">Anything we should know? (optional)</label>
+            <textarea id="notes" placeholder="Wear, small flaws, alterations, how many times it's been worn..."></textarea>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <h2 class="section-heading">What would you like to do with it?</h2>
+          <p class="section-sub">Leave it up to us, or tell us a preference.</p>
+
+          <div class="form-group">
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="outcome" value="rent" /> Rent it out
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="outcome" value="sell" /> Sell it
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="outcome" value="either" checked /> Either — you decide
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="value">Roughly what do you think it's worth? (optional)</label>
+            <input type="number" id="value" min="0" placeholder="e.g. 60" />
+            <div class="hint">Helps us price it fairly — not a promise of that amount.</div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <h2 class="section-heading">Contact &amp; handoff</h2>
+          <p class="section-sub">How do we reach you, and how does the item get to us?</p>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="contact-name">Your name <span class="req">*</span></label>
+              <input type="text" id="contact-name" />
+              <div class="error-text" id="err-contact-name">We need a name to reach you by.</div>
+            </div>
+            <div class="form-group">
+              <label for="contact-email">Email <span class="req">*</span></label>
+              <input type="email" id="contact-email" />
+              <div class="error-text" id="err-contact-email">Enter a valid email.</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="contact-phone">Phone <span class="req">*</span></label>
+            <input type="tel" id="contact-phone" placeholder="+92 3xx xxxxxxx" />
+            <div class="error-text" id="err-contact-phone">We need a number in case of pickup scheduling.</div>
+          </div>
+
+          <div class="form-group">
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="handoff" value="pickup" checked /> Pick it up from me
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="handoff" value="dropoff" /> I'll drop it off
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group conditional-field visible" id="address-field">
+            <label for="address">Pickup address <span class="req">*</span></label>
+            <input type="text" id="address" placeholder="Street, area, city" />
+            <div class="error-text" id="err-address">We need an address to arrange pickup.</div>
+          </div>
+
+          <div class="form-group">
+            <label for="pickup-date">Preferred date (optional)</label>
+            <input type="date" id="pickup-date" />
+            <div class="hint">We'll confirm an exact time by email or phone.</div>
+          </div>
+        </fieldset>
+
+        <button type="submit" class="cta" id="submit-btn">Submit item</button>
+        <div class="form-note">
+          <strong>Your details stay with us.</strong> Name, phone, and address are only ever used to
+          coordinate pickup and payout — never shown to whoever eventually rents or buys this item.
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <span>WearShare — a rental &amp; resale closet, run anonymously.</span>
+    <span>Prototype build — submissions aren't sent anywhere yet.</span>
+  </footer>
+
+  <script src="intake.js"></script>
+</body>
+</html>
