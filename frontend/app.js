@@ -35,6 +35,68 @@ function shade(hex, amt) {
 }
 
 /* ------------------------------------------------------------
+   Availability calendar
+   ------------------------------------------------------------
+   Reads item.bookedRanges (mock data — a real backend would
+   check this against existing orders for the item; see the
+   API specification document, Section 2.3, "Check rental
+   availability"). View-only for now: shows what's booked
+   alongside the day-count picker, doesn't replace it.
+--------------------------------------------------------------- */
+
+function parseISODate(str) {
+  const [y, m, d] = str.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function isDateBooked(item, date) {
+  const ranges = item.bookedRanges || [];
+  return ranges.some((r) => date >= parseISODate(r.start) && date <= parseISODate(r.end));
+}
+
+function renderCalendarMonth(item, year, month) {
+  const first = new Date(year, month, 1);
+  const startDay = first.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const monthLabel = first.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+  const thisIndex = year * 12 + month;
+  const todayIndex = today.getFullYear() * 12 + today.getMonth();
+  const atMin = thisIndex <= todayIndex;
+
+  let cells = "";
+  for (let i = 0; i < startDay; i++) cells += `<div class="cal-cell empty"></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const isPast = date < today;
+    const isToday = date.getTime() === today.getTime();
+    const booked = isDateBooked(item, date);
+    let cls = "cal-cell";
+    if (isPast) cls += " past";
+    else if (booked) cls += " booked";
+    else cls += " open";
+    if (isToday) cls += " today";
+    cells += `<div class="${cls}">${d}</div>`;
+  }
+
+  return `
+    <div class="cal-header">
+      <button type="button" class="cal-nav" data-cal-nav="-1" ${atMin ? "disabled" : ""}>&larr;</button>
+      <span class="cal-month-label">${monthLabel}</span>
+      <button type="button" class="cal-nav" data-cal-nav="1">&rarr;</button>
+    </div>
+    <div class="cal-weekdays">${["S", "M", "T", "W", "T", "F", "S"].map((d) => `<span>${d}</span>`).join("")}</div>
+    <div class="cal-grid">${cells}</div>
+    <div class="cal-legend">
+      <span class="legend-item"><span class="legend-swatch"></span> Open</span>
+      <span class="legend-item"><span class="legend-swatch booked"></span> Already booked</span>
+    </div>
+  `;
+}
+
+/* ------------------------------------------------------------
    Catalog page
 --------------------------------------------------------------- */
 
@@ -153,7 +215,12 @@ function initDetail() {
   `;
 
   const panel = document.getElementById("order-panel");
+  const tabsWrap = root.querySelector(".mode-tabs");
   const tabs = root.querySelectorAll(".mode-tabs button");
+
+  let calDate = new Date();
+  let calYear = calDate.getFullYear();
+  let calMonth = calDate.getMonth();
 
   tabs.forEach((btn) =>
     btn.addEventListener("click", () => {
@@ -163,9 +230,32 @@ function initDetail() {
     })
   );
 
+  function renderCalendarSection() {
+    const container = document.getElementById("cal-container");
+    if (!container) return;
+    container.innerHTML = renderCalendarMonth(item, calYear, calMonth);
+    container.querySelectorAll("[data-cal-nav]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        calMonth += Number(btn.dataset.calNav);
+        if (calMonth < 0) {
+          calMonth = 11;
+          calYear -= 1;
+        } else if (calMonth > 11) {
+          calMonth = 0;
+          calYear += 1;
+        }
+        renderCalendarSection();
+      });
+    });
+  }
+
   function renderPanel() {
     if (mode === "rent") {
       panel.innerHTML = `
+        <div class="availability-block">
+          <div class="availability-heading">Availability</div>
+          <div id="cal-container"></div>
+        </div>
         <div class="order-row">
           <label for="days">Rental length</label>
           <select id="days">
@@ -178,6 +268,7 @@ function initDetail() {
         <div class="total-row"><span>Total</span><span id="price">$${item.rentPerDay * days}</span></div>
         <button class="cta" id="cta">Request to rent</button>
       `;
+      renderCalendarSection();
       const daysSelect = document.getElementById("days");
       daysSelect.value = String(days);
       daysSelect.addEventListener("change", () => {
@@ -191,13 +282,101 @@ function initDetail() {
       `;
     }
 
-    document.getElementById("cta").addEventListener("click", () => {
-      alert(
-        mode === "rent"
-          ? `Rental request sent for ${days} days. This is a prototype — nothing was actually submitted.`
-          : `Purchase request sent. This is a prototype — nothing was actually submitted.`
-      );
+    document.getElementById("cta").addEventListener("click", renderCheckout);
+  }
+
+  /* ----------------------------------------------------------
+     Checkout: collects the shopper's contact & shipping info.
+     No backend yet — a valid submit generates a mock order
+     reference and shows a confirmation. Once the backend exists,
+     replace handleCheckoutSubmit() with a real POST /orders call
+     (see the API specification document).
+  ---------------------------------------------------------- */
+  function total() {
+    return mode === "rent" ? item.rentPerDay * days : item.buyPrice;
+  }
+
+  function renderCheckout() {
+    if (tabsWrap) tabsWrap.style.display = "none";
+
+    const summary =
+      mode === "rent"
+        ? `<strong>${item.name}</strong> — rent for ${days} days — $${total()}`
+        : `<strong>${item.name}</strong> — buy — $${total()}`;
+
+    panel.innerHTML = `
+      <span class="checkout-back" id="checkout-back">&larr; Back</span>
+      <div class="checkout-summary">${summary}</div>
+      <form id="checkout-form" novalidate>
+        <div class="form-group">
+          <label for="co-name">Your name <span class="req">*</span></label>
+          <input type="text" id="co-name" />
+          <div class="error-text" id="err-co-name">We need a name for the order.</div>
+        </div>
+        <div class="form-group">
+          <label for="co-email">Email <span class="req">*</span></label>
+          <input type="email" id="co-email" />
+          <div class="error-text" id="err-co-email">Enter a valid email.</div>
+        </div>
+        <div class="form-group">
+          <label for="co-phone">Phone <span class="req">*</span></label>
+          <input type="tel" id="co-phone" placeholder="+92 3xx xxxxxxx" />
+          <div class="error-text" id="err-co-phone">We need a number in case of delivery questions.</div>
+        </div>
+        <div class="form-group">
+          <label for="co-address">Shipping address <span class="req">*</span></label>
+          <input type="text" id="co-address" placeholder="Street, area, city" />
+          <div class="error-text" id="err-co-address">We need an address to ship to.</div>
+        </div>
+        <button type="submit" class="cta">Confirm ${mode === "rent" ? "rental" : "purchase"}</button>
+      </form>
+    `;
+
+    document.getElementById("checkout-back").addEventListener("click", () => {
+      if (tabsWrap) tabsWrap.style.display = "";
+      renderPanel();
     });
+
+    const form = document.getElementById("checkout-form");
+    const fields = [
+      { input: document.getElementById("co-name"), errorId: "err-co-name" },
+      { input: document.getElementById("co-email"), errorId: "err-co-email", isEmail: true },
+      { input: document.getElementById("co-phone"), errorId: "err-co-phone" },
+      { input: document.getElementById("co-address"), errorId: "err-co-address" },
+    ];
+    fields.forEach(({ input, errorId }) =>
+      input.addEventListener("input", () => {
+        input.classList.remove("field-error");
+        document.getElementById(errorId).classList.remove("show");
+      })
+    );
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      let valid = true;
+      fields.forEach(({ input, errorId, isEmail }) => {
+        const value = input.value.trim();
+        const bad = !value || (isEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value));
+        input.classList.toggle("field-error", bad);
+        document.getElementById(errorId).classList.toggle("show", bad);
+        if (bad) valid = false;
+      });
+      if (!valid) return;
+      renderConfirmation(document.getElementById("co-name").value.trim());
+    });
+  }
+
+  function renderConfirmation(customerName) {
+    const ref = "ORD-" + Math.floor(100000 + Math.random() * 900000);
+    panel.innerHTML = `
+      <div class="order-confirmation tag">
+        <h2>Request sent, ${customerName.split(" ")[0]}.</h2>
+        <p>Your order reference is <span class="ref">${ref}</span>. This is a prototype, so nothing was
+        actually submitted, but in the real flow we'd confirm availability and send a payment link next.</p>
+        <p>You can look up an order's status any time on our
+        <a href="track-order.html" style="color: var(--chambray); text-decoration: underline;">order tracking page</a>.</p>
+      </div>
+    `;
   }
 
   renderPanel();

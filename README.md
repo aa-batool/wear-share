@@ -35,9 +35,11 @@ wear-share/
 │   ├── index.html         # Catalog / browse page
 │   ├── item.html          # Item detail page
 │   ├── intake.html        # "Send us your clothes" form
+│   ├── track-order.html   # Shopper order status lookup
 │   ├── styles.css         # Shared design system (used by admin/ too)
-│   ├── app.js
+│   ├── app.js              # Catalog, item detail, and checkout flow
 │   ├── intake.js
+│   ├── track-order.js
 │   ├── data.js
 │   └── admin/             # Owner-facing admin panel (protected, separate from shopper pages)
 │       ├── login.html
@@ -135,6 +137,10 @@ A running note of what's actually been built, so this README stays honest about 
 - [x] Admin panel: orders management — filter, inline status update, detail view (mock data, no backend yet)
 - [x] Admin panel: payouts — running total, mark-as-paid action (mock data, no backend yet)
 - [x] **Admin panel complete** (all four screens built on mock data — dashboard, listings, orders, payouts)
+- [x] Checkout flow: real request form (name/email/phone/address) + mock confirmation with order reference
+- [x] Shopper order tracking page (mock lookup by order ID + email)
+- [x] Admin photo upload UI: add/remove/reorder photos in the listings edit panel (in-memory only, no real storage yet)
+- [x] Availability calendar on item detail (view-only, reads mock bookedRanges, month navigation)
 - [ ] Database schema created (`backend/db`)
 - [ ] Backend server serving static frontend
 - [ ] Public API: browse catalog, item detail

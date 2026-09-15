@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Track your order — WearShare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="wrap">
+      <div class="wordmark">WearShare<small>rent it or buy it, no names attached</small></div>
+      <nav class="site-nav">
+        <a href="index.html">Browse the closet</a>
+        <a href="intake.html">Send us your clothes</a>
+        <a href="track-order.html">Track your order</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <section class="track-hero">
+      <h1>Where's your order?</h1>
+      <p>Enter your order reference and the email you used, and we'll pull up its status.</p>
+    </section>
+
+    <div class="track-form">
+      <form id="track-form" novalidate>
+        <div class="form-group">
+          <label for="track-id">Order reference <span class="req">*</span></label>
+          <input type="text" id="track-id" placeholder="e.g. ORD-482913" />
+          <div class="error-text" id="err-track-id">Enter your order reference.</div>
+        </div>
+        <div class="form-group">
+          <label for="track-email">Email <span class="req">*</span></label>
+          <input type="email" id="track-email" placeholder="The email you placed the order with" />
+          <div class="error-text" id="err-track-email">Enter the email used for this order.</div>
+        </div>
+        <button type="submit" class="cta">Check status</button>
+      </form>
+      <p class="hint" style="margin-top: 14px;">
+        Prototype build — try <strong>ORD-482913</strong> / <strong>jamila.r@example.com</strong> to see a result.
+      </p>
+    </div>
+
+    <div id="track-result"></div>
+  </div>
+
+  <footer class="site-footer">
+    <span>WearShare — a rental &amp; resale closet, run anonymously.</span>
+    <span>Prototype build — lookup uses sample data only.</span>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="track-order.js"></script>
+</body>
+</html>

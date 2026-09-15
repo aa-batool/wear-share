@@ -16,6 +16,10 @@ const ITEMS = [
     rentPerDay: 13,
     buyPrice: 150,
     description: "Floor-length velvet gown with a fitted waist. Worn once, professionally cleaned since.",
+    bookedRanges: [
+      { start: "2026-09-12", end: "2026-09-19" },
+      { start: "2026-09-25", end: "2026-09-29" },
+    ],
   },
   {
     id: "wrap-01",
@@ -52,6 +56,7 @@ const ITEMS = [
     rentPerDay: 9,
     buyPrice: 78,
     description: "Covered-button velvet blazer with a bit of drama. Good for evening events.",
+    bookedRanges: [{ start: "2026-09-18", end: "2026-09-23" }],
   },
   {
     id: "gown-02",
@@ -64,6 +69,7 @@ const ITEMS = [
     rentPerDay: 14,
     buyPrice: 158,
     description: "Layered tulle skirt, sweetheart bodice. Worn once as a wedding guest.",
+    bookedRanges: [{ start: "2026-09-20", end: "2026-09-24" }],
   },
   {
     id: "blouse-01",
@@ -102,5 +108,43 @@ const ITEMS = [
     buyPrice: 149,
     description: "Deep satin gown with a slit and open back. Worn once, stored carefully since.",
     buyOnly: true,
+  },
+];
+
+/* ------------------------------------------------------------
+   Mock order lookup — stand-in for GET /orders/:id?email=...
+   until the backend exists. Try one of these on the tracking
+   page: ORD-482913 / jamila.r@example.com
+--------------------------------------------------------------- */
+
+const TRACK_ORDERS = [
+  {
+    id: "ORD-482913",
+    email: "jamila.r@example.com",
+    item: "Deep Plum Velvet Gown",
+    type: "rent",
+    status: "shipped",
+    rentEnd: "Sep 19",
+    carrier: "TCS",
+    trackingNumber: "TCS-88213754",
+  },
+  {
+    id: "ORD-551024",
+    email: "ahmed.k@example.com",
+    item: "Fawn Wool Overcoat",
+    type: "buy",
+    status: "confirmed",
+    carrier: null,
+    trackingNumber: null,
+  },
+  {
+    id: "ORD-390442",
+    email: "noor.h@example.com",
+    item: "Blush Tulle Gown",
+    type: "rent",
+    status: "return_due",
+    rentEnd: "Sep 10",
+    carrier: "Leopards",
+    trackingNumber: "LCS-40218855",
   },
 ];

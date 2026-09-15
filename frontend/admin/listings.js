@@ -42,6 +42,7 @@ function initListings() {
   if (presetStatus && ITEM_STATUSES.includes(presetStatus)) statusSelect.value = presetStatus;
 
   let openEditId = null;
+  let photoDrafts = {}; // itemId -> array of data URLs, held only while that item's panel is open
 
   function matches(item) {
     if (statusSelect.value && item.status !== statusSelect.value) return false;
@@ -108,12 +109,38 @@ function initListings() {
           <label for="edit-desc-${item.id}">Description</label>
           <textarea id="edit-desc-${item.id}">${item.description}</textarea>
         </div>
+        <div class="form-group">
+          <label>Photos</label>
+          <div class="photo-grid" id="photo-grid-${item.id}">${renderPhotoThumbs(item.id)}</div>
+          <input type="file" accept="image/*" multiple id="photo-input-${item.id}" style="display:none" />
+          <button type="button" class="edit-btn" data-add-photo="${item.id}">+ Add photo</button>
+        </div>
         <div class="save-row">
           <button type="button" class="cta" data-save="${item.id}">Save changes</button>
           <button type="button" class="edit-btn" data-cancel="${item.id}">Cancel</button>
           <span class="save-confirm" id="confirm-${item.id}">Saved.</span>
         </div>
       </div>`;
+  }
+
+  function renderPhotoThumbs(id) {
+    const photos = photoDrafts[id] || [];
+    if (photos.length === 0) {
+      return `<div class="photo-empty-note">No photos yet — add at least one before publishing.</div>`;
+    }
+    return photos
+      .map(
+        (src, i) => `
+        <div class="photo-thumb">
+          <img src="${src}" alt="Listing photo ${i + 1}" />
+          <button type="button" class="remove-btn" data-remove-photo="${id}" data-index="${i}" title="Remove">&times;</button>
+          <div class="move-btns">
+            <button type="button" data-move-photo="${id}" data-index="${i}" data-dir="-1" ${i === 0 ? "disabled" : ""} title="Move left">&larr;</button>
+            <button type="button" data-move-photo="${id}" data-index="${i}" data-dir="1" ${i === photos.length - 1 ? "disabled" : ""} title="Move right">&rarr;</button>
+          </div>
+        </div>`
+      )
+      .join("");
   }
 
   function render() {
@@ -158,13 +185,22 @@ function initListings() {
 
     ledger.querySelectorAll("[data-edit]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        openEditId = openEditId === btn.dataset.edit ? null : btn.dataset.edit;
+        const id = btn.dataset.edit;
+        if (openEditId === id) {
+          delete photoDrafts[id];
+          openEditId = null;
+        } else {
+          const item = ADMIN_ITEMS.find((i) => i.id === id);
+          photoDrafts[id] = (item.photos || []).slice();
+          openEditId = id;
+        }
         render();
       });
     });
 
     ledger.querySelectorAll("[data-cancel]").forEach((btn) => {
       btn.addEventListener("click", () => {
+        delete photoDrafts[btn.dataset.cancel];
         openEditId = null;
         render();
       });
@@ -181,7 +217,57 @@ function initListings() {
         item.rentPerDay = Number(document.getElementById(`edit-rent-${id}`).value) || item.rentPerDay;
         item.buyPrice = Number(document.getElementById(`edit-buy-${id}`).value) || item.buyPrice;
         item.description = document.getElementById(`edit-desc-${id}`).value.trim();
+        item.photos = (photoDrafts[id] || item.photos || []).slice();
+        delete photoDrafts[id];
         openEditId = null;
+        render();
+      });
+    });
+
+    ledger.querySelectorAll("[data-add-photo]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.getElementById(`photo-input-${btn.dataset.addPhoto}`).click();
+      });
+    });
+
+    ledger.querySelectorAll('input[type="file"]').forEach((input) => {
+      input.addEventListener("change", () => {
+        const id = input.id.replace("photo-input-", "");
+        const files = Array.from(input.files || []);
+        if (files.length === 0) return;
+
+        let remaining = files.length;
+        files.forEach((file) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            photoDrafts[id] = photoDrafts[id] || [];
+            photoDrafts[id].push(reader.result);
+            remaining -= 1;
+            if (remaining === 0) render();
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+    });
+
+    ledger.querySelectorAll("[data-remove-photo]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.removePhoto;
+        const index = Number(btn.dataset.index);
+        photoDrafts[id].splice(index, 1);
+        render();
+      });
+    });
+
+    ledger.querySelectorAll("[data-move-photo]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.movePhoto;
+        const index = Number(btn.dataset.index);
+        const dir = Number(btn.dataset.dir);
+        const arr = photoDrafts[id];
+        const target = index + dir;
+        if (target < 0 || target >= arr.length) return;
+        [arr[index], arr[target]] = [arr[target], arr[index]];
         render();
       });
     });

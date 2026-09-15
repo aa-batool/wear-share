@@ -311,6 +311,76 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
   padding: 5px 2px;
 }
 
+.availability-block { margin-bottom: 22px; }
+.availability-heading {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+}
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cal-month-label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.94rem;
+}
+.cal-nav {
+  background: none;
+  border: 1px solid var(--line);
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+.cal-nav:hover:not(:disabled) { border-color: var(--chambray); color: var(--chambray-deep); }
+.cal-nav:disabled { opacity: 0.35; cursor: default; }
+
+.cal-weekdays, .cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cal-weekdays span {
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  padding-bottom: 4px;
+}
+.cal-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  border: 1px solid var(--line);
+}
+.cal-cell.empty { border: none; }
+.cal-cell.past { color: var(--ink-soft); border-color: var(--line); opacity: 0.45; }
+.cal-cell.open { color: var(--ink); }
+.cal-cell.booked { background: var(--thread); color: var(--paper); border-color: var(--thread); }
+.cal-cell.today { border: 1.5px solid var(--chambray); font-weight: 600; }
+
+.cal-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-swatch {
+  width: 11px;
+  height: 11px;
+  display: inline-block;
+  border: 1px solid var(--line);
+}
+.legend-swatch.booked { background: var(--thread); border-color: var(--thread); }
+
 .total-row {
   display: flex;
   justify-content: space-between;
@@ -343,6 +413,68 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
   border-top: 1px dashed var(--line);
 }
 .routing-stub strong { color: var(--ink); font-weight: 500; }
+
+/* Checkout form (within the order panel) */
+.checkout-back {
+  display: inline-block;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+.checkout-back:hover { color: var(--chambray); }
+
+.checkout-summary {
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+.checkout-summary strong { color: var(--ink); font-weight: 500; }
+
+.order-confirmation { padding: 26px 24px; }
+.order-confirmation h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.4rem;
+  margin: 0 0 8px;
+}
+.order-confirmation .ref { color: var(--thread); font-weight: 600; }
+.order-confirmation p { color: var(--ink-soft); }
+
+/* ==========================================================
+   Order tracking
+   ========================================================== */
+.track-hero { padding: 48px 0 8px; }
+.track-hero h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
+  margin: 0 0 14px;
+  max-width: 20ch;
+}
+.track-hero p { color: var(--ink-soft); max-width: 52ch; }
+
+.track-form { max-width: 420px; padding: 26px 0 60px; }
+.track-form .form-row { grid-template-columns: 1fr; }
+
+.track-result { max-width: 480px; padding: 28px 26px; margin: 10px 0 90px; }
+.track-result .item-name-line {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  margin-bottom: 4px;
+}
+.track-result .status-pill { margin-bottom: 16px; }
+.track-not-found {
+  max-width: 480px;
+  padding: 24px 22px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  margin: 10px 0 90px;
+  border: 1px dashed var(--line);
+}
 
 /* ==========================================================
    Intake form
@@ -730,6 +862,59 @@ input.field-error, select.field-error, textarea.field-error { border-color: var(
   display: none;
 }
 .save-confirm.show { display: inline; }
+
+.photo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.photo-thumb {
+  position: relative;
+  width: 84px;
+  height: 100px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  background: var(--canvas);
+}
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.photo-thumb .remove-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  line-height: 16px;
+  text-align: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--thread);
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 0;
+}
+.photo-thumb .move-btns {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  display: flex;
+  gap: 2px;
+}
+.photo-thumb .move-btns button {
+  width: 16px;
+  height: 16px;
+  font-size: 0.62rem;
+  line-height: 1;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  padding: 0;
+}
+.photo-empty-note {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  margin-bottom: 10px;
+}
 
 /* ==========================================================
    Footer
