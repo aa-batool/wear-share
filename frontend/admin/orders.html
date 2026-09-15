@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Orders — WearShare Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+
+  <header class="admin-topbar">
+    <div class="wrap">
+      <div class="wordmark">WearShare<small>admin</small></div>
+      <nav class="admin-nav">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="listings.html">Listings</a>
+        <a href="orders.html" class="active">Orders</a>
+        <a href="#" data-stub="Payouts">Payouts</a>
+      </nav>
+      <a href="login.html" class="admin-signout">Sign out</a>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="wrap">
+      <h1 class="admin-heading">Orders</h1>
+      <p class="admin-subheading">Every rental and purchase, and where it stands.</p>
+
+      <div class="filters">
+        <div class="filter-field">
+          <label for="f-status">Status</label>
+          <select id="f-status"><option value="">All</option></select>
+        </div>
+        <div class="filter-field">
+          <label for="f-type">Type</label>
+          <select id="f-type">
+            <option value="">All</option>
+            <option value="rent">Rent</option>
+            <option value="buy">Buy</option>
+          </select>
+        </div>
+        <span class="result-count" id="result-count"></span>
+      </div>
+
+      <div class="ledger" id="orders-ledger"></div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <span>WearShare Admin — prototype build. Status changes here reset on page reload until the backend exists.</span>
+  </footer>
+
+  <script src="admin-data.js"></script>
+  <script src="admin.js"></script>
+  <script src="orders.js"></script>
+</body>
+</html>

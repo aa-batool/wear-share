@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin login — WearShare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+
+  <div class="login-shell">
+    <form class="login-card tag" id="login-form" novalidate>
+      <div class="wordmark">WearShare</div>
+      <p class="login-sub">Admin — listings, orders, and payouts.</p>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" autocomplete="current-password" />
+      </div>
+
+      <div class="login-error" id="login-error">That email or password doesn't match our records.</div>
+
+      <button type="submit" class="cta">Sign in</button>
+
+      <div class="login-hint">
+        Prototype build — no real accounts yet. Use <strong>owner@example.com</strong> /
+        <strong>changeme123</strong> to preview the dashboard.
+      </div>
+    </form>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

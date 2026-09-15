@@ -30,14 +30,26 @@ Full reasoning for each choice is in `docs/tech-stack-document.md`.
 ## Project Structure
 
 ```
-closet-app/
+wear-share/
 ├── frontend/              # Static pages served to shoppers and providers
 │   ├── index.html         # Catalog / browse page
 │   ├── item.html          # Item detail page
 │   ├── intake.html        # "Send us your clothes" form
-│   ├── styles.css
+│   ├── styles.css         # Shared design system (used by admin/ too)
 │   ├── app.js
-│   └── intake.js
+│   ├── intake.js
+│   ├── data.js
+│   └── admin/             # Owner-facing admin panel (protected, separate from shopper pages)
+│       ├── login.html
+│       ├── dashboard.html
+│       ├── listings.html
+│       ├── orders.html
+│       ├── payouts.html
+│       ├── admin.js
+│       ├── listings.js
+│       ├── orders.js
+│       ├── payouts.js
+│       └── admin-data.js
 │
 ├── backend/
 │   ├── server.js          # Entry point — starts the HTTP server
@@ -118,6 +130,11 @@ A running note of what's actually been built, so this README stays honest about 
 - [x] Project skeleton (`frontend/`, `backend/`, env template, gitignore)
 - [x] Shopper-facing frontend: catalog browse page + item detail page (mock data, no backend yet)
 - [x] Provider-facing frontend: "send us your clothes" intake form (mock submit, no backend yet)
+- [x] Admin panel: login screen + dashboard overview (mock data, no backend yet)
+- [x] Admin panel: listings management — filter, inline status update, edit panel (mock data, no backend yet)
+- [x] Admin panel: orders management — filter, inline status update, detail view (mock data, no backend yet)
+- [x] Admin panel: payouts — running total, mark-as-paid action (mock data, no backend yet)
+- [x] **Admin panel complete** (all four screens built on mock data — dashboard, listings, orders, payouts)
 - [ ] Database schema created (`backend/db`)
 - [ ] Backend server serving static frontend
 - [ ] Public API: browse catalog, item detail

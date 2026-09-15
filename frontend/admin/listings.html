@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Listings — WearShare Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+
+  <header class="admin-topbar">
+    <div class="wrap">
+      <div class="wordmark">WearShare<small>admin</small></div>
+      <nav class="admin-nav">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="listings.html" class="active">Listings</a>
+        <a href="orders.html">Orders</a>
+        <a href="#" data-stub="Payouts">Payouts</a>
+      </nav>
+      <a href="login.html" class="admin-signout">Sign out</a>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="wrap">
+      <h1 class="admin-heading">Listings</h1>
+      <p class="admin-subheading">Everything currently in the catalog, awaiting photography, or retired.</p>
+
+      <div class="filters">
+        <div class="filter-field">
+          <label for="f-status">Status</label>
+          <select id="f-status"><option value="">All</option></select>
+        </div>
+        <div class="filter-field">
+          <label for="f-category">Category</label>
+          <select id="f-category"><option value="">All</option></select>
+        </div>
+        <div class="filter-field" style="flex: 1; min-width: 180px;">
+          <label for="f-search">Search</label>
+          <input type="text" id="f-search" placeholder="Item name..." />
+        </div>
+        <span class="result-count" id="result-count"></span>
+      </div>
+
+      <div class="ledger" id="listings-ledger"></div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <span>WearShare Admin — prototype build. Edits here reset on page reload until the backend exists.</span>
+  </footer>
+
+  <script src="admin-data.js"></script>
+  <script src="admin.js"></script>
+  <script src="listings.js"></script>
+</body>
+</html>
