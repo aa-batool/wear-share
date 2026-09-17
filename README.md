@@ -140,7 +140,7 @@ A running note of what's actually been built, so this README stays honest about 
 - [x] Checkout flow: real request form (name/email/phone/address) + mock confirmation with order reference
 - [x] Shopper order tracking page (mock lookup by order ID + email)
 - [x] Admin photo upload UI: add/remove/reorder photos in the listings edit panel (in-memory only, no real storage yet)
-- [x] Availability calendar on item detail (view-only, reads mock bookedRanges, month navigation)
+- [x] Availability calendar on item detail — click a start date, then an end date directly on the calendar (no length dropdown), conflict detection against booked ranges, month navigation
 - [ ] Database schema created (`backend/db`)
 - [ ] Backend server serving static frontend
 - [ ] Public API: browse catalog, item detail

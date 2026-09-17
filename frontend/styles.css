@@ -251,6 +251,7 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
   grid-template-columns: 1.05fr 1fr;
   gap: 52px;
   padding: 40px 0 100px;
+  align-items: start;
 }
 @media (max-width: 820px) { .detail { grid-template-columns: 1fr; gap: 30px; padding-top: 24px; } }
 
@@ -311,7 +312,7 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
   padding: 5px 2px;
 }
 
-.availability-block { margin-bottom: 22px; }
+.availability-block { margin-bottom: 22px; max-width: 280px; }
 .availability-heading {
   font-size: 0.82rem;
   color: var(--ink-soft);
@@ -326,16 +327,16 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
 .cal-month-label {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 0.94rem;
+  font-size: 0.86rem;
 }
 .cal-nav {
   background: none;
   border: 1px solid var(--line);
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   cursor: pointer;
   color: var(--ink-soft);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
 }
 .cal-nav:hover:not(:disabled) { border-color: var(--chambray); color: var(--chambray-deep); }
 .cal-nav:disabled { opacity: 0.35; cursor: default; }
@@ -343,20 +344,20 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
 .cal-weekdays, .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 3px;
 }
 .cal-weekdays span {
   text-align: center;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   color: var(--ink-soft);
-  padding-bottom: 4px;
+  padding-bottom: 3px;
 }
 .cal-cell {
   aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   border: 1px solid var(--line);
 }
 .cal-cell.empty { border: none; }
@@ -364,18 +365,47 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
 .cal-cell.open { color: var(--ink); }
 .cal-cell.booked { background: var(--thread); color: var(--paper); border-color: var(--thread); }
 .cal-cell.today { border: 1.5px solid var(--chambray); font-weight: 600; }
+.cal-cell.clickable { cursor: pointer; }
+.cal-cell.clickable:hover { border-color: var(--chambray); }
+.cal-cell.selected { background: var(--chambray); color: var(--paper); border-color: var(--chambray); }
+.cal-cell.selected.conflict { background: var(--thread); border-color: var(--thread); }
+
+.cal-hint {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  margin: 8px 0 0;
+}
+
+.conflict-warning {
+  display: none;
+  color: var(--thread);
+  font-size: 0.84rem;
+  margin: -4px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--thread);
+}
+.conflict-warning.show { display: block; }
+
+.cta:disabled {
+  background: var(--line);
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+
+.legend-swatch.selected { background: var(--chambray); border-color: var(--chambray); }
 
 .cal-legend {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-top: 10px;
-  font-size: 0.76rem;
+  font-size: 0.68rem;
   color: var(--ink-soft);
 }
-.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-item { display: flex; align-items: center; gap: 5px; }
 .legend-swatch {
-  width: 11px;
-  height: 11px;
+  width: 9px;
+  height: 9px;
   display: inline-block;
   border: 1px solid var(--line);
 }

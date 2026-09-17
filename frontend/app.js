@@ -40,8 +40,8 @@ function shade(hex, amt) {
    Reads item.bookedRanges (mock data — a real backend would
    check this against existing orders for the item; see the
    API specification document, Section 2.3, "Check rental
-   availability"). View-only for now: shows what's booked
-   alongside the day-count picker, doesn't replace it.
+   availability"). The shopper picks a start and end date
+   directly on the calendar — there's no separate length picker.
 --------------------------------------------------------------- */
 
 function parseISODate(str) {
@@ -49,12 +49,55 @@ function parseISODate(str) {
   return new Date(y, m - 1, d);
 }
 
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function diffDays(a, b) {
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+
+function toISO(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatShort(date) {
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 function isDateBooked(item, date) {
   const ranges = item.bookedRanges || [];
   return ranges.some((r) => date >= parseISODate(r.start) && date <= parseISODate(r.end));
 }
 
-function renderCalendarMonth(item, year, month) {
+function datesBetween(start, end) {
+  const dates = [];
+  const count = diffDays(start, end) + 1;
+  for (let i = 0; i < count; i++) dates.push(addDays(start, i));
+  return dates;
+}
+
+function hasConflict(item, start, end) {
+  return datesBetween(start, end).some((d) => isDateBooked(item, d));
+}
+
+function firstOpenDate(item) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let d = today;
+  for (let i = 0; i < 365; i++) {
+    if (!isDateBooked(item, d)) return d;
+    d = addDays(d, 1);
+  }
+  return today;
+}
+
+function renderCalendarMonth(item, year, month, rangeStart, rangeEnd) {
   const first = new Date(year, month, 1);
   const startDay = first.getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -66,6 +109,15 @@ function renderCalendarMonth(item, year, month) {
   const todayIndex = today.getFullYear() * 12 + today.getMonth();
   const atMin = thisIndex <= todayIndex;
 
+  const selectedSet = new Set(
+    rangeStart && rangeEnd
+      ? datesBetween(rangeStart, rangeEnd).map((d) => d.getTime())
+      : rangeStart
+      ? [rangeStart.getTime()]
+      : []
+  );
+  const conflict = rangeStart && rangeEnd ? hasConflict(item, rangeStart, rangeEnd) : false;
+
   let cells = "";
   for (let i = 0; i < startDay; i++) cells += `<div class="cal-cell empty"></div>`;
   for (let d = 1; d <= daysInMonth; d++) {
@@ -73,13 +125,25 @@ function renderCalendarMonth(item, year, month) {
     const isPast = date < today;
     const isToday = date.getTime() === today.getTime();
     const booked = isDateBooked(item, date);
+    const isSelected = selectedSet.has(date.getTime());
+    const clickable = !isPast && !booked;
+
     let cls = "cal-cell";
     if (isPast) cls += " past";
     else if (booked) cls += " booked";
     else cls += " open";
+    if (isSelected) cls += conflict ? " selected conflict" : " selected";
     if (isToday) cls += " today";
-    cells += `<div class="${cls}">${d}</div>`;
+    if (clickable) cls += " clickable";
+
+    cells += `<div class="${cls}" ${clickable ? `data-cal-date="${toISO(date)}"` : ""}>${d}</div>`;
   }
+
+  const hint = !rangeStart
+    ? "Click a date to start your rental there."
+    : !rangeEnd
+    ? "Now click the last day you'll have it."
+    : "Click a new date to start over.";
 
   return `
     <div class="cal-header">
@@ -91,8 +155,10 @@ function renderCalendarMonth(item, year, month) {
     <div class="cal-grid">${cells}</div>
     <div class="cal-legend">
       <span class="legend-item"><span class="legend-swatch"></span> Open</span>
+      <span class="legend-item"><span class="legend-swatch selected"></span> Your dates</span>
       <span class="legend-item"><span class="legend-swatch booked"></span> Already booked</span>
     </div>
+    <p class="cal-hint">${hint}</p>
   `;
 }
 
@@ -182,7 +248,6 @@ function initDetail() {
   const canRent = !item.buyOnly;
   const canBuy = !item.rentOnly;
   let mode = canRent ? "rent" : "buy";
-  let days = 3;
 
   root.innerHTML = `
     <div class="detail-photo tag">${renderPhoto(item)}</div>
@@ -221,6 +286,8 @@ function initDetail() {
   let calDate = new Date();
   let calYear = calDate.getFullYear();
   let calMonth = calDate.getMonth();
+  let rangeStart = canRent ? firstOpenDate(item) : null;
+  let rangeEnd = null;
 
   tabs.forEach((btn) =>
     btn.addEventListener("click", () => {
@@ -233,7 +300,8 @@ function initDetail() {
   function renderCalendarSection() {
     const container = document.getElementById("cal-container");
     if (!container) return;
-    container.innerHTML = renderCalendarMonth(item, calYear, calMonth);
+    container.innerHTML = renderCalendarMonth(item, calYear, calMonth, rangeStart, rangeEnd);
+
     container.querySelectorAll("[data-cal-nav]").forEach((btn) => {
       btn.addEventListener("click", () => {
         calMonth += Number(btn.dataset.calNav);
@@ -247,6 +315,62 @@ function initDetail() {
         renderCalendarSection();
       });
     });
+
+    container.querySelectorAll("[data-cal-date]").forEach((cell) => {
+      cell.addEventListener("click", () => {
+        const clicked = parseISODate(cell.dataset.calDate);
+
+        if (!rangeStart || rangeEnd) {
+          rangeStart = clicked;
+          rangeEnd = null;
+        } else if (clicked < rangeStart) {
+          rangeStart = clicked;
+          rangeEnd = null;
+        } else {
+          rangeEnd = clicked;
+        }
+
+        renderCalendarSection();
+        updateRentSummary();
+      });
+    });
+  }
+
+  function updateRentSummary() {
+    const dateRangeEl = document.getElementById("date-range");
+    const priceEl = document.getElementById("price");
+    const warningEl = document.getElementById("conflict-warning");
+    const cta = document.getElementById("cta");
+
+    if (!rangeStart) {
+      dateRangeEl.textContent = "Pick your start date on the calendar";
+      priceEl.textContent = "—";
+      warningEl.classList.remove("show");
+      cta.disabled = true;
+      return;
+    }
+
+    if (!rangeEnd) {
+      dateRangeEl.textContent = `${formatShort(rangeStart)} → pick your return date`;
+      priceEl.textContent = "—";
+      warningEl.classList.remove("show");
+      cta.disabled = true;
+      return;
+    }
+
+    const days = diffDays(rangeStart, rangeEnd) + 1;
+    const conflict = hasConflict(item, rangeStart, rangeEnd);
+
+    dateRangeEl.textContent = `${formatShort(rangeStart)} → ${formatShort(rangeEnd)} (${days} day${days === 1 ? "" : "s"})`;
+    priceEl.textContent = `$${item.rentPerDay * days}`;
+
+    if (conflict) {
+      warningEl.classList.add("show");
+      cta.disabled = true;
+    } else {
+      warningEl.classList.remove("show");
+      cta.disabled = false;
+    }
   }
 
   function renderPanel() {
@@ -257,24 +381,17 @@ function initDetail() {
           <div id="cal-container"></div>
         </div>
         <div class="order-row">
-          <label for="days">Rental length</label>
-          <select id="days">
-            <option value="3">3 days</option>
-            <option value="5">5 days</option>
-            <option value="7">7 days</option>
-            <option value="14">14 days</option>
-          </select>
+          <label>Your dates</label>
+          <span id="date-range"></span>
         </div>
-        <div class="total-row"><span>Total</span><span id="price">$${item.rentPerDay * days}</span></div>
+        <div class="conflict-warning" id="conflict-warning">
+          Those dates overlap an existing booking — pick a different start or end date.
+        </div>
+        <div class="total-row"><span>Total</span><span id="price">—</span></div>
         <button class="cta" id="cta">Request to rent</button>
       `;
       renderCalendarSection();
-      const daysSelect = document.getElementById("days");
-      daysSelect.value = String(days);
-      daysSelect.addEventListener("change", () => {
-        days = Number(daysSelect.value);
-        document.getElementById("price").textContent = `$${item.rentPerDay * days}`;
-      });
+      updateRentSummary();
     } else {
       panel.innerHTML = `
         <div class="total-row"><span>Total</span><span>$${item.buyPrice}</span></div>
@@ -293,7 +410,7 @@ function initDetail() {
      (see the API specification document).
   ---------------------------------------------------------- */
   function total() {
-    return mode === "rent" ? item.rentPerDay * days : item.buyPrice;
+    return mode === "rent" ? item.rentPerDay * (diffDays(rangeStart, rangeEnd) + 1) : item.buyPrice;
   }
 
   function renderCheckout() {
@@ -301,7 +418,7 @@ function initDetail() {
 
     const summary =
       mode === "rent"
-        ? `<strong>${item.name}</strong> — rent for ${days} days — $${total()}`
+        ? `<strong>${item.name}</strong> — ${formatShort(rangeStart)} → ${formatShort(rangeEnd)} — $${total()}`
         : `<strong>${item.name}</strong> — buy — $${total()}`;
 
     panel.innerHTML = `
