@@ -1,0 +1,12 @@
+# Local database (created and seeded on first run)
+data.sqlite
+data.sqlite-*
+
+# Your real local settings
+.env
+
+node_modules/
+.DS_Store
+
+# Backups made by the server
+backups/
