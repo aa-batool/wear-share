@@ -1,0 +1,46 @@
+# Render "Blueprint" for the REAL, LIVE WearShare site.
+# Needs a paid plan, because the database is a file and only paid services can keep
+# files between restarts (a "persistent disk"). Everything stored (orders, items,
+# photos, backups) lives on the disk at /var/data. See DEPLOY.md, part 2.
+# To use it: in Render choose New > Blueprint, pick this repository, and set the
+# "Blueprint file path" to render.live.yaml.
+services:
+  - type: web
+    name: wearshare
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: wearshare-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /var/data/data.sqlite
+      - key: BACKUP_DIR
+        value: /var/data/backups
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      # You type these in on Render's screen (they are never saved in this file):
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
+      - key: CONTACT_EMAIL
+        sync: false
+      - key: CONTACT_WHATSAPP
+        sync: false
+      - key: ONLINE_PAYMENT_INSTRUCTIONS
+        sync: false

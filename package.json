@@ -1,0 +1,14 @@
+{
+  "name": "wear-share",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WearShare \u2014 anonymous clothes rental & resale",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning backend/server.js",
+    "test": "node backend/test/smoke.js",
+    "test:hosting": "node backend/test/hosting.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

@@ -1,0 +1,31 @@
+# Render "Blueprint" for the PRIVATE CLIENT PREVIEW of WearShare.
+# Free plan: the site sleeps after 15 minutes without visitors, forgets everything it
+# stored whenever it sleeps or restarts (so it reloads the demo data), and can't send
+# email. Perfect for letting your client click around; NOT for real customers.
+# See DEPLOY.md. For the real, live site see render.live.yaml.
+services:
+  - type: web
+    name: wearshare-preview
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: NODE_ENV
+        value: production
+      - key: SEED_DEMO
+        value: "on"
+      - key: TRUST_PROXY_HOPS
+        value: "1"
+      - key: BACKUP_EVERY
+        value: "off"
+      # You type these in on Render's screen (they are never saved in this file):
+      - key: SITE_PASSWORD
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

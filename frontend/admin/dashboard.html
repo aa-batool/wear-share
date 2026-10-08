@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — WearShare Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+
+  <header class="admin-topbar">
+    <div class="wrap">
+      <div class="wordmark">WearShare<small>admin</small></div>
+      <nav class="admin-nav">
+        <a href="dashboard.html" class="active">Dashboard</a>
+        <a href="listings.html">Listings</a>
+        <a href="orders.html">Orders</a>
+        <a href="payouts.html">Payouts</a>
+      </nav>
+      <a href="login.html" class="admin-signout">Sign out</a>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="wrap">
+      <h1 class="admin-heading">Dashboard</h1>
+      <p class="admin-subheading">Where things stand right now.</p>
+
+      <div class="stat-grid" id="stat-grid"></div>
+
+      <div class="section-block">
+        <h2 class="section-block-heading">Recent activity</h2>
+        <p class="section-block-sub">The last few orders to move.</p>
+        <div class="ledger" id="activity-ledger"></div>
+      </div>
+
+      <div class="section-block" id="backup-block">
+        <h2 class="section-block-heading">Backups</h2>
+        <p class="section-block-sub">Everything (orders, listings, photos, payouts) lives in one database file. Download a copy now and then and keep it somewhere safe. It contains personal details, so don't share it.</p>
+        <div class="backup-box">
+          <a class="detail-btn" id="backup-download" href="/api/admin/backup" download>Download a backup</a>
+          <button type="button" class="detail-btn" id="backup-now">Save a copy on the server now</button>
+        </div>
+        <ul class="backup-list" id="backup-list"></ul>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <span>WearShare Admin</span>
+  </footer>
+
+  <script src="../api.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
