@@ -8,7 +8,7 @@ This repository is being built from scratch, following the planning documents li
 
 ## Status
 
-🚧 **In progress — frontend and backend are now connected.** Every page reads and writes through the real API and database: browsing, availability, checkout, order tracking, the provider intake form, and the whole admin panel. Not built yet: payments (Stripe), courier integration, and real photo storage. See the build log and "Before going live" below.
+**Feature-complete for a first launch, ready to host.** Shoppers browse, rent or buy, pay (cash on delivery or manual online transfer), track, cancel and get emails. Providers send items in through the intake form and get emails too. The owner runs everything from the admin panel: listings, orders, shipments, returns, refunds, charges, payouts, backups and spreadsheet exports. See [DEPLOY.md](DEPLOY.md) for putting it online. Not built yet: card payments (Stripe or similar), automatic courier booking, and cloud photo storage. See the build log and "Before going live" below.
 
 ---
 
@@ -19,9 +19,11 @@ This repository is being built from scratch, following the planning documents li
 | Frontend | Plain HTML / CSS / JavaScript — no framework, no build step |
 | Backend | Node.js (plain `http`, no framework dependency required) |
 | Database | SQLite to start (via Node's built-in `node:sqlite`), PostgreSQL later if volume grows |
-| Payments | Stripe |
+| Payments | Cash on delivery and manual online transfer today; Stripe (cards) planned |
 | Photo storage | Cloud object storage (Cloudflare R2 / S3 / Backblaze B2) — added once photo upload is built |
-| Delivery | Manual courier booking initially, API integration later |
+| Delivery | You hand parcels to a courier and record the tracking number in admin; courier API integration later |
+| Email | Hand-written SMTP client in `backend/mailer.js` (no packages), sending from a Gmail account |
+| Hosting | Render (an always-on server with a disk), see DEPLOY.md |
 
 Full reasoning for each choice is in `docs/tech-stack-document.md`.
 
@@ -31,58 +33,81 @@ Full reasoning for each choice is in `docs/tech-stack-document.md`.
 
 ```
 wear-share/
-├── frontend/              # Static pages served to shoppers and providers
-│   ├── index.html         # Catalog / browse page
-│   ├── item.html          # Item detail page
-│   ├── intake.html        # "Send us your clothes" form
-│   ├── track-order.html   # Shopper order status lookup
-│   ├── styles.css         # Shared design system (used by admin/ too)
-│   ├── api.js             # Shared: api() fetch wrapper, esc() HTML-escaper, item normalizer
-│   ├── app.js             # Catalog, item detail, calendar, and checkout flow
-│   ├── intake.js
-│   ├── track-order.js
-│   └── admin/             # Owner-facing admin panel (protected, separate from shopper pages)
+├── frontend/                  # Static pages served to shoppers and providers
+│   ├── index.html             # Catalog / browse page
+│   ├── item.html              # Item detail, calendar and checkout form
+│   ├── payment.html           # Payment page: cash on delivery / online / card (coming soon)
+│   ├── intake.html            # "Send us your clothes" form (incl. private payout details)
+│   ├── track-order.html       # Order lookup: status, cancel, refund, late fees, shipment
+│   ├── policies.html          # Plain-language rental, buying, refund and privacy policies
+│   ├── styles.css             # Shared design system (used by admin/ too)
+│   ├── api.js                 # Shared: api() fetch wrapper, esc(), formatMoney(), site info, footer
+│   ├── app.js                 # Catalog, item detail, calendar and checkout form
+│   ├── payment.js             # Payment page and order confirmation
+│   ├── intake.js              # Provider intake form
+│   ├── track-order.js         # Order tracking page
+│   ├── policies.js            # Fills the policies page from your settings
+│   └── admin/                 # Owner-facing admin panel (needs sign-in)
 │       ├── login.html
-│       ├── dashboard.html
-│       ├── listings.html
-│       ├── orders.html
-│       ├── payouts.html
-│       ├── admin.js
+│       ├── dashboard.html     # Tiles, recent activity, backups
+│       ├── listings.html      # Items: edit, photos, status
+│       ├── orders.html        # Orders: status, payment, shipments, returns, refunds, charges
+│       ├── payouts.html       # Provider payouts and their payout details
+│       ├── admin.js           # Shared admin helpers, login, dashboard, backups
 │       ├── listings.js
 │       ├── orders.js
 │       └── payouts.js
 │
 ├── backend/
-│   ├── server.js          # Entry point — serves the frontend + API, boots the database
-│   ├── env.js             # Tiny .env loader (no dependency needed)
-│   ├── rate-limit.js      # In-memory limiter (admin login, public forms)
-│   ├── test/
-│   │   └── smoke.js       # End-to-end API test (npm test)
+│   ├── server.js              # Entry point: pages + API, routing, password gate, schedulers
+│   ├── env.js                 # Tiny .env loader (no dependency needed)
+│   ├── rate-limit.js          # In-memory limiter (admin login, public forms)
+│   ├── mailer.js              # Email: to you, to customers, to providers (SMTP, no packages)
 │   ├── db/
-│   │   ├── index.js       # Opens the SQLite file, runs schema + seed on boot
-│   │   ├── schema.js      # CREATE TABLE statements + public_items view
-│   │   └── seed.js        # Demo data: 4 providers, 10 items, 8 orders, 6 payouts
-│   └── routes/            # API route handlers, one per resource
-│       ├── items.js       # Public: catalog, item detail, availability
-│       ├── orders.js      # Public: checkout, order tracking lookup
-│       ├── intake.js      # Public: "send us your clothes" submissions
-│       ├── photos.js      # Serves item photos as real images (public only if listed)
-│       ├── admin-auth.js  # Admin login, session verification
-│       ├── admin-providers.js  # Admin: providers + intake
-│       ├── admin-items.js      # Admin: listings + photos
-│       ├── admin-orders.js     # Admin: orders, status, shipments
-│       ├── admin-payouts.js    # Admin: payouts
-│       ├── admin-dashboard.js  # Admin: dashboard numbers + recent activity
-│       └── util.js        # Shared helpers (ID generation, validation)
+│   │   ├── index.js           # Opens the SQLite file, runs schema + seed on boot
+│   │   ├── schema.js          # Tables, public_items view, and the additive migrations
+│   │   ├── seed.js            # Demo data (off by default when NODE_ENV=production)
+│   │   └── admin-account.js   # Creates / updates the admin login from ADMIN_EMAIL / ADMIN_PASSWORD
+│   ├── routes/                # API route handlers, one per resource
+│   │   ├── items.js           # Public: catalog, item detail, availability
+│   │   ├── orders.js          # Public: checkout, order lookup, customer cancel
+│   │   ├── intake.js          # Public: "send us your clothes" submissions
+│   │   ├── photos.js          # Serves item photos as real images (public only if listed)
+│   │   ├── site.js            # Contact details, delivery fee and late-fee rule
+│   │   ├── order-lifecycle.js # Cancel, refund, return, late fees, payouts, item status, reminders
+│   │   ├── admin-auth.js      # Admin login, sessions, password hashing
+│   │   ├── admin-providers.js # Admin: providers + intake
+│   │   ├── admin-items.js     # Admin: listings + photos
+│   │   ├── admin-orders.js    # Admin: orders, status, payment, shipments
+│   │   ├── admin-payouts.js   # Admin: payouts
+│   │   ├── admin-dashboard.js # Admin: dashboard numbers + recent activity
+│   │   ├── admin-export.js    # Admin: CSV spreadsheet exports
+│   │   ├── backup.js          # Database backups (download + automatic copies)
+│   │   └── util.js            # Shared helpers (ID generation, validation)
+│   └── test/
+│       ├── smoke.js           # End-to-end API test (npm test)
+│       ├── hosting.js         # Hosting settings test (npm run test:hosting)
+│       ├── browser-checkout.js    # Browser tests (need Playwright; see Tests below)
+│       ├── browser-lifecycle.js
+│       ├── browser-delivery.js
+│       ├── browser-provider.js
+│       └── browser-ship-backup.js
 │
-├── package.json           # npm start / npm test
-├── .env.example           # Template for required environment variables
-├── .env                   # Your real local config — never committed
-├── .gitignore
+├── package.json               # npm start / npm test / npm run test:hosting
+├── .env.example               # Template for every setting, with explanations
+├── .env                       # Your real local config (never committed)
+├── .gitignore                 # Keeps .env, data.sqlite and backups/ out of GitHub
+├── render.yaml                # Render settings: free private client preview
+├── render.live.yaml           # Render settings: the real live site (paid, with a disk)
+├── DEPLOY.md                  # Step-by-step hosting guide
 └── README.md
+
+Created when you run it (not in the repository):
+├── data.sqlite                # The database: orders, items, providers, payouts, photos
+└── backups/                   # Daily and on-demand database copies (BACKUP_DIR to move it)
 ```
 
-This mirrors the structure agreed in `docs/coding-conventions-document.md`.
+The folder layout follows the planning documents listed under [Documentation](#documentation).
 
 ---
 
@@ -103,7 +128,7 @@ This mirrors the structure agreed in `docs/coding-conventions-document.md`.
    ```
    cp .env.example .env
    ```
-   See `docs/environment-deployment-guide.md` for what each variable is for and where to get test keys.
+   Every setting is explained in `.env.example`, and [DEPLOY.md](DEPLOY.md) covers the hosting ones.
 3. Run the server:
    ```
    npm start
@@ -126,9 +151,7 @@ npm test
 ```
 Starts a throwaway server on a spare port with a temporary database and runs 251 checks over real HTTP: anonymity (no provider data in any public response), payment method and payment status, booking conflicts, validation, admin auth, photo visibility, rate limiting. It never touches your `data.sqlite`. Needs no dependencies.
 
-There is also a real-browser test of the checkout and payment flow (`backend/test/browser-checkout.js`, 19 checks; `backend/test/browser-lifecycle.js`, 14 checks for cancelling and returns; and `backend/test/browser-delivery.js`, 5 checks for the delivery fee; and `backend/test/browser-provider.js`, 4 checks for the payout box; and `backend/test/browser-ship-backup.js`, 9 checks for the shipment form, backups and spreadsheet export). It needs Playwright, which the project deliberately does not depend on, so it isn't part of `npm test`. Run them with `PLAYWRIGHT_PATH=<path to playwright> node backend/test/browser-checkout.js` (and the same for `browser-lifecycle.js`, `browser-delivery.js`, `browser-provider.js` and `browser-ship-backup.js`).
-
-The browser-level test (22 checks driving the real pages in headless Chromium: booking, tracking, intake, the admin panel, and hostile-input handling) was run with Playwright during development but isn't in the repo yet, since Playwright would be the project's first dependency.
+There is also a real-browser test of the checkout and payment flow (`backend/test/browser-checkout.js`, 19 checks; `backend/test/browser-lifecycle.js`, 14 checks for cancelling and returns; and `backend/test/browser-delivery.js`, 5 checks for the delivery fee; and `backend/test/browser-provider.js`, 4 checks for the payout box; and `backend/test/browser-ship-backup.js`, 9 checks for the shipment form, backups and spreadsheet export). It needs Playwright, which the project deliberately does not depend on, so it isn't part of `npm test`. The hosting settings (preview password, visitor addresses behind a proxy, clean production database) have their own dependency-free test: `npm run test:hosting` (23 checks). The browser tests run with `PLAYWRIGHT_PATH=<path to playwright> node backend/test/browser-checkout.js` (and the same for `browser-lifecycle.js`, `browser-delivery.js`, `browser-provider.js` and `browser-ship-backup.js`).
 
 ---
 
@@ -228,8 +251,9 @@ Things that are fine for local development but must change first:
 - **Password hashing** is salted scrypt (built into Node), compared in constant time; older SHA-256 hashes are upgraded on login.
 - **Photos are stored as base64 inside SQLite.** The API already serves them as normal images, so moving to object storage (R2/S3) only changes `backend/routes/photos.js` and the upload route.
 - **No payment gateway.** Customers choose cash on delivery or online; online means a manual bank/wallet transfer. Replace the placeholder text in `ONLINE_PAYMENT_INSTRUCTIONS` with your real account details, and mark payments received by hand in admin Orders until Stripe exists. A pending order blocks its dates until an admin confirms or cancels it.
-- **Hosting:** this needs a host that runs Node (Render, Railway, Fly.io, a VPS). **GitHub Pages can't run it** — it only serves static files, and without the API every page shows the "isn't connected" message. Set `NODE_ENV=production` so the session cookie gets the `Secure` flag, and serve over HTTPS.
-- **Rate limiting is in memory and keyed on the connecting IP.** Behind a reverse proxy, key on the forwarded address instead, and note it resets on restart.
+- **Hosting:** follow [DEPLOY.md](DEPLOY.md). The site needs a host that runs Node and keeps a disk (Render, Railway, Fly.io, a VPS). GitHub Pages and Vercel can't run it as it stands. Set `NODE_ENV=production` (Secure cookie, security headers, no demo data) and serve over HTTPS.
+- **Rate limiting is in memory** and resets on restart. Behind a host's proxy, set `TRUST_PROXY_HOPS` so each visitor is counted separately (DEPLOY.md explains how to check it).
+- **Back up regularly.** Download a backup from the admin Dashboard and keep a copy away from the server.
 
 ---
 
