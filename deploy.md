@@ -26,11 +26,10 @@ Later changes: copy the new files into the folder, commit and push in GitHub Des
 
 1. Sign in at render.com (you already use GitHub). Click **New > Blueprint**.
 2. Connect your GitHub account if asked, and pick the `wear-share` repository. Render reads `render.yaml` and shows one service, `wearshare-preview`.
-3. It asks for three values:
-   - `SITE_PASSWORD`: the password your client will type to see the site. Make one up and send it to them separately from the link.
-   - `ADMIN_EMAIL` and `ADMIN_PASSWORD`: your admin login for the preview (at least 10 characters).
+3. It asks for two values: `ADMIN_EMAIL` and `ADMIN_PASSWORD`, your admin login for the preview (at least 10 characters). The shop itself opens for anyone with the link; only `/admin` needs this login.
+   - *Optional:* if you'd rather lock the whole preview, add a `SITE_PASSWORD` setting in Render's Environment tab. Visitors then get a password prompt before they see anything.
 4. Click **Apply**. The first build takes a few minutes. When it says **Live**, open the address at the top (it looks like `https://wearshare-preview-xxxx.onrender.com`).
-5. Your browser asks for a username and password. Type anything as the username and your `SITE_PASSWORD` as the password. You should see the shop with the demo items.
+5. You should see the shop with the demo items straight away.
 
 **If the build fails with "No such built-in module: node:sqlite":** Render is using a Node version that's too old. In the service's **Environment** tab set `NODE_VERSION` to `22.18.0` (or newer), save, and choose **Manual Deploy > Clear build cache & deploy**. The project also contains a `.node-version` file saying the same thing.
 
@@ -45,7 +44,7 @@ Later changes: copy the new files into the folder, commit and push in GitHub Des
 - It can't send emails (the free plan blocks them), so nobody receives order emails during the review.
 - Customers' payment is not real. Online and card payments aren't connected.
 
-Send me the client's feedback as one list and I'll work through it. After each round, push the new files and Render updates the preview.
+Anyone who has the link can open the preview (it asks search engines not to list it only if `SITE_PASSWORD` is set, so share the link only with your client). Send me the client's feedback as one list and I'll work through it. After each round, push the new files and Render updates the preview.
 
 ---
 

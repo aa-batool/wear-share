@@ -22,9 +22,8 @@ services:
         value: "1"
       - key: BACKUP_EVERY
         value: "off"
-      # You type these in on Render's screen (they are never saved in this file):
-      - key: SITE_PASSWORD
-        sync: false
+      # You type these in on Render's screen (they are never saved in this file).
+      # (To lock the whole preview behind a password prompt, add a SITE_PASSWORD setting.)
       - key: ADMIN_EMAIL
         sync: false
       - key: ADMIN_PASSWORD
