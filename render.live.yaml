@@ -18,7 +18,7 @@ services:
       sizeGB: 1
     envVars:
       - key: NODE_VERSION
-        value: 22.12.0
+        value: 22.18.0
       - key: NODE_ENV
         value: production
       - key: DATABASE_PATH

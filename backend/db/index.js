@@ -1,6 +1,6 @@
 // backend/db/index.js
 // ------------------------------------------------------------
-// Uses Node's built-in node:sqlite (available Node 22.5+) — no
+// Uses Node's built-in node:sqlite (available without a flag from Node 22.13) — no
 // npm install required, matching the "lightweight, easy to
 // maintain" stack decision. Swap this file out for a real
 // PostgreSQL connection later without touching schema.js or
@@ -9,7 +9,13 @@
 // migration note).
 // ------------------------------------------------------------
 
-const { DatabaseSync } = require("node:sqlite");
+let DatabaseSync;
+try {
+  ({ DatabaseSync } = require("node:sqlite"));
+} catch {
+  console.error(`\nWearShare needs Node.js 22.13 or newer (this is ${process.version}), because it uses Node's built-in SQLite.\nOn Render, set the NODE_VERSION setting to 22.18.0 (Environment tab) and redeploy. On your computer, install the current LTS from nodejs.org.\n`);
+  process.exit(1);
+}
 const path = require("node:path");
 const { createSchema } = require("./schema");
 const { seedIfEmpty } = require("./seed");
@@ -26,4 +32,4 @@ function init() {
   return { seeded };
 }
 
-module.exports = { db, init };
+module.exports = { db, init, DB_PATH };

@@ -7,7 +7,7 @@
 // conflicts, validation, auth, and photo visibility.
 //
 // Run with:  npm test     (or: node backend/test/smoke.js)
-// Needs no dependencies — just Node 22.5+.
+// Needs no dependencies — just Node 22.13+.
 // ------------------------------------------------------------
 
 const { spawn } = require("node:child_process");
@@ -50,6 +50,7 @@ const SVG = "data:image/svg+xml;base64,PHN2Zy8+";
 // A tiny fake mail server, so the owner-notification emails can be checked
 // without a real account. Remembers every message it is given.
 const mailbox = [];
+const BACKUP_TMP = require("node:path").join(require("node:os").tmpdir(), `wearshare-backups-${process.pid}`);
 function startFakeSmtp() {
   return new Promise((resolve) => {
     const srv = net.createServer((sock) => {
@@ -104,6 +105,45 @@ async function waitForMail(n, ms = 4000) {
 
 async function main() {
   const smtp = await startFakeSmtp();
+
+  // ---------------- Delivery fee (in-process, on a throwaway in-memory database) ----------------
+  {
+    const { createSchema } = require("../db/schema");
+    const { seedIfEmpty } = require("../db/seed");
+    const orders = require("../routes/orders");
+    const life = require("../routes/order-lifecycle");
+    const site = require("../routes/site");
+    const mem = new DatabaseSync(":memory:");
+    createSchema(mem);
+    seedIfEmpty(mem);
+    const old = { f: process.env.DELIVERY_FEE, o: process.env.FREE_DELIVERY_OVER, e: process.env.CUSTOMER_EMAILS };
+    process.env.CUSTOMER_EMAILS = "off"; // no mail from this in-process run
+    process.env.DELIVERY_FEE = "250";
+    process.env.FREE_DELIVERY_OVER = "5000";
+    const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+    const cust = { name: "Del Ivery", email: "delivery@example.com", phone: "1", shipping_address: "1 Road" };
+    const small = orders.createOrder(mem, { item_id: "blouse-01", type: "rent", rent_start_date: day(900), rent_end_date: day(901), payment_method: "cod", customer: cust });
+    check("delivery is added to an order under the free-delivery limit (2 days x Rs 1,400 + Rs 250)",
+      small.status === 201 && small.body.items_total === 2800 && small.body.delivery_fee === 250 && small.body.price_total === 3050, JSON.stringify(small.body));
+    const big = orders.createOrder(mem, { item_id: "blouse-01", type: "rent", rent_start_date: day(910), rent_end_date: day(913), payment_method: "cod", customer: cust });
+    check("...and is free once the items reach Rs 5,000 (4 days = Rs 5,600)", big.status === 201 && big.body.delivery_fee === 0 && big.body.price_total === 5600, JSON.stringify(big.body));
+    check("tracking returns the stored delivery fee", orders.getOrder(mem, small.body.order_id, "delivery@example.com").delivery_fee === 250 && orders.getOrder(mem, big.body.order_id, "delivery@example.com").delivery_fee === 0);
+    check("the public site info says how delivery is charged", site.getSite().body.delivery.fee === 250 && site.getSite().body.delivery.free_over === 5000 && site.deliveryFeeFor(4999) === 250 && site.deliveryFeeFor(5000) === 0);
+
+    mem.prepare("UPDATE orders SET payment_status = 'paid', status = 'returned' WHERE id = ?").run(small.body.order_id);
+    life.ensurePayout(mem, small.body.order_id);
+    const payout = mem.prepare("SELECT amount FROM payouts WHERE order_id = ?").get(small.body.order_id);
+    check("the provider's share is worked out on the items only, not the delivery fee (50% of Rs 2,800)", payout?.amount === 1400, JSON.stringify(payout));
+
+    delete process.env.DELIVERY_FEE;
+    delete process.env.FREE_DELIVERY_OVER;
+    const none = orders.createOrder(mem, { item_id: "blouse-01", type: "rent", rent_start_date: day(920), rent_end_date: day(921), payment_method: "cod", customer: cust });
+    check("with no delivery fee set, nothing is added", none.body.delivery_fee === 0 && none.body.price_total === 2800);
+    for (const [k, v] of [["DELIVERY_FEE", old.f], ["FREE_DELIVERY_OVER", old.o], ["CUSTOMER_EMAILS", old.e]]) {
+      if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    }
+  }
+
   // ---------------- Admin login from .env (in-process, on a throwaway in-memory database) ----------------
   {
     const { createSchema } = require("../db/schema");
@@ -171,7 +211,7 @@ async function main() {
   const server = spawn(
     process.execPath,
     ["--disable-warning=ExperimentalWarning", path.join(__dirname, "..", "server.js")],
-    { env: { ...process.env, PORT: String(PORT), DATABASE_PATH: DB_PATH, ONLINE_PAYMENT_INSTRUCTIONS: PAY_INFO, RATE_LIMIT_SCALE: "20", CONTACT_EMAIL: "help@example.com", CONTACT_WHATSAPP: "+92 300 0000000", ALLOW_RESERVED_EMAIL_DOMAINS: "1", SMTP_HOST: "127.0.0.1", SMTP_PORT: String(smtp.address().port), SMTP_SECURE: "false", SMTP_USER: "sender@example.com", SMTP_PASS: "app pass 1234", NOTIFY_EMAIL: "owner-inbox@example.com" }, stdio: "ignore" }
+    { env: { ...process.env, PORT: String(PORT), DATABASE_PATH: DB_PATH, ONLINE_PAYMENT_INSTRUCTIONS: PAY_INFO, RATE_LIMIT_SCALE: "20", CONTACT_EMAIL: "help@example.com", CONTACT_WHATSAPP: "+92 300 0000000", ALLOW_RESERVED_EMAIL_DOMAINS: "1", SMTP_HOST: "127.0.0.1", SMTP_PORT: String(smtp.address().port), SMTP_SECURE: "false", SMTP_USER: "sender@example.com", SMTP_PASS: "app pass 1234", NOTIFY_EMAIL: "owner-inbox@example.com", BACKUP_DIR: BACKUP_TMP, BACKUP_EVERY: "off" }, stdio: "ignore" }
   );
 
   try {
@@ -443,31 +483,33 @@ async function main() {
     for (let seen = -1; seen !== mailbox.length; ) { seen = mailbox.length; await sleep(500); } // let earlier emails land first
     mailbox.length = 0;
     const mailIntake = { ...intake, item: { ...intake.item, name: "Mail Test Dress" } };
-    r = await call("POST", "/api/intake", { body: mailIntake });
-    await waitForMail(1);
+    r = await call("POST", "/api/intake", { body: { ...mailIntake, payout_details: "HBL 0123-4567890 Provider Person" } });
+    await waitForMail(2);
+    const isOwnerMail = (m) => m.rcpt === "owner-inbox@example.com";
     const intakeMail = mailbox.find((m) => /intake/i.test(m.subject || ""));
     check("a new intake emails the owner's address, and only that address",
-      !!intakeMail && intakeMail.rcpt === "owner-inbox@example.com" && intakeMail.to === "owner-inbox@example.com" && mailbox.every((m) => m.rcpt === "owner-inbox@example.com"), JSON.stringify(mailbox.map((m) => m.subject)));
+      !!intakeMail && intakeMail.rcpt === "owner-inbox@example.com" && intakeMail.to === "owner-inbox@example.com" && mailbox.filter((m) => /intake/i.test(m.subject || "")).every(isOwnerMail), JSON.stringify(mailbox.map((m) => m.subject)));
+    check("...the owner's email says payout details were given but never prints them", intakeMail?.text.includes("provided (see admin Payouts)") && !intakeMail.text.includes("0123-4567890"), intakeMail?.text);
     check("...it logs in with the configured account and says what came in",
       intakeMail?.auth?.[0] === "sender@example.com" && intakeMail?.auth?.[1] === "apppass1234" && intakeMail.text.includes("Mail Test Dress") && intakeMail.text.includes("provider.person@example.com"), intakeMail?.text);
 
     const hostile = { name: "Mallory\r\nBcc: attacker@example.com", email: "mallory@example.com", phone: "+92 300 3333333", shipping_address: "1 Road\n.\nQUIT" };
     r = await call("POST", "/api/orders", { body: { item_id: "blouse-01", type: "rent", rent_start_date: isoDay(300), rent_end_date: isoDay(302), payment_method: "cod", customer: hostile } });
     const mailOrderId = r.data?.order_id;
-    await waitForMail(2);
+    await waitForMail(4);
     const orderMail = mailbox.find((m) => (m.subject || "").includes(mailOrderId || "nope"));
     check("a new order emails the owner the order, item, total, payment method and customer",
       !!orderMail && orderMail.text.includes("Ivory Silk Blouse") && orderMail.text.includes("Rs 4,200") && /Cash on delivery/.test(orderMail.text) && orderMail.text.includes("mallory@example.com"), orderMail?.text);
     check("text a customer typed can't add email headers or end the message early",
       !!orderMail && !/^Bcc:/mi.test(orderMail.head) && orderMail.rcpt === "owner-inbox@example.com" && orderMail.text.includes("QUIT"), orderMail?.head);
 
-    await waitForMail(3);
+    await waitForMail(4);
     const toCustomer = (m) => m.rcpt === "mallory@example.com";
     const confirmMail = mailbox.find((m) => toCustomer(m) && (m.subject || "").includes(mailOrderId));
     check("the customer gets an order confirmation at the address they gave, and only they see it",
       !!confirmMail && confirmMail.to === "mallory@example.com" && confirmMail.text.includes(mailOrderId) && confirmMail.text.includes("Ivory Silk Blouse") && confirmMail.text.includes("Rs 4,200") && /cash on delivery/i.test(confirmMail.text) && !/Bcc:/i.test(confirmMail.head), confirmMail?.text);
     check("the owner's copy still goes only to the owner",
-      mailbox.filter((m) => !toCustomer(m)).every((m) => m.rcpt === "owner-inbox@example.com"), JSON.stringify(mailbox.map((m) => m.rcpt)));
+      mailbox.filter((m) => !toCustomer(m) && m.rcpt !== "provider.person@example.com").every((m) => m.rcpt === "owner-inbox@example.com"), JSON.stringify(mailbox.map((m) => m.rcpt)));
     check("customer emails say nothing about providers", !mailbox.filter(toCustomer).some((m) => /provider/i.test(m.text) || m.text.includes("provider.person")));
 
     const sentBefore = mailbox.length;
@@ -478,7 +520,7 @@ async function main() {
     r = await call("POST", `/api/admin/orders/${mailOrderId}/shipments`, { cookie, body: { direction: "outbound", courier: "TCS" } });
     r = await call("PATCH", "/api/admin/items/gown-01", { cookie, body: { status: "retired" } });
     await waitForMail(sentBefore + 8);
-    const subjects = mailbox.filter((m) => !toCustomer(m)).map((m) => m.subject || "");
+    const subjects = mailbox.filter(isOwnerMail).map((m) => m.subject || "");
     check("order status, payment, shipment and listing changes each email the owner",
       subjects.some((x) => /is now confirmed/.test(x)) && subjects.some((x) => /payment received/.test(x)) && subjects.some((x) => /shipment booked/.test(x)) && subjects.some((x) => /Deep Plum Velvet Gown is now retired/.test(x)), JSON.stringify(subjects));
     const customerMails = mailbox.filter(toCustomer);
@@ -505,11 +547,211 @@ async function main() {
     check("saving a listing without changing its status sends nothing", mailbox.length === before);
     await call("PATCH", "/api/admin/items/gown-01", { cookie, body: { status: "listed" } });
 
+    // ---------------- Provider payout details + provider emails ----------------
+    {
+      const PROV = "pay.provider@example.com";
+      const toProv = (m) => m.rcpt === PROV;
+      const settle = async () => { for (let seen = -1; seen !== mailbox.length; ) { seen = mailbox.length; await sleep(400); } };
+      await settle();
+      const savedMail = mailbox.slice(); // restored afterwards so later checks still see earlier mail
+      mailbox.length = 0;
+      const base = { item: { name: "Provider Mail Gown", category: "Dresses", size: "M", condition: "Good" }, outcome: "either", contact: { name: "Pay Provider", email: PROV, phone: "1" }, handoff: "dropoff" };
+      r = await call("POST", "/api/intake", { body: { ...base, payout_details: "x".repeat(400) } });
+      check("overlong payout details -> 422", r.status === 422);
+      r = await call("POST", "/api/intake", { body: { ...base, payout_details: { a: 1 } } });
+      check("non-text payout details -> 422", r.status === 422);
+      r = await call("POST", "/api/intake", { body: base });
+      await settle();
+      const got = mailbox.find(toProv);
+      check("a provider is emailed that their submission arrived, and is nudged for payout details when none were given",
+        !!got && /received your submission/i.test(got.subject) && got.text.includes("Provider Mail Gown") && /bank or wallet details/.test(got.text), got?.text);
+      mailbox.length = 0;
+      r = await call("POST", "/api/intake", { body: { ...base, item: { ...base.item, name: "Provider Mail Gown 2" }, payout_details: "JazzCash 0300 1112223" } });
+      await settle();
+      const got2 = mailbox.find(toProv);
+      check("a returning provider's new details are saved, and the confirmation skips the nudge", !!got2 && !/bank or wallet details/.test(got2.text));
+      r = await call("GET", "/api/admin/payouts", { cookie });
+      const items = (await call("GET", "/api/admin/items", { cookie })).data?.items || [];
+      const gown = items.find((i) => i.name === "Provider Mail Gown");
+
+      mailbox.length = 0;
+      await call("PATCH", `/api/admin/items/${gown.id}`, { cookie, body: { status: "listed", rent_price_per_day: 1000, buy_price: 9000 } });
+      await settle();
+      const listedMail = mailbox.find(toProv);
+      check("the provider is emailed when their piece goes live", !!listedMail && /is now listed/.test(listedMail.text) && listedMail.subject.includes("Provider Mail Gown"), listedMail?.text);
+      mailbox.length = 0;
+      await call("PATCH", `/api/admin/items/${gown.id}`, { cookie, body: { status: "retired" } });
+      await call("PATCH", `/api/admin/items/${gown.id}`, { cookie, body: { status: "listed" } });
+      await settle();
+      check("...only the first time (intake to listed), not on later changes", mailbox.filter(toProv).length === 0);
+
+      mailbox.length = 0;
+      r = await call("POST", "/api/orders", { body: { item_id: gown.id, type: "rent", rent_start_date: isoDay(800), rent_end_date: isoDay(802), payment_method: "cod", customer: { name: "Secret Customer", email: "secret.customer@example.com", phone: "0300 9998887", shipping_address: "77 Hidden Lane, Lahore" } } });
+      const pOrder = r.data?.order_id;
+      await settle();
+      check("placing an order doesn't email the provider yet", mailbox.filter(toProv).length === 0);
+      await call("PATCH", `/api/admin/orders/${pOrder}/status`, { cookie, body: { status: "confirmed" } });
+      await call("PATCH", `/api/admin/orders/${pOrder}/status`, { cookie, body: { status: "shipped" } });
+      await settle();
+      const bookedMails = mailbox.filter(toProv);
+      const booked = bookedMails[0];
+      check("confirming the order emails the provider once, with the item, the dates and their share",
+        bookedMails.length === 1 && /booked/.test(booked.subject) && booked.text.includes(isoDay(800)) && booked.text.includes(isoDay(802)) && booked.text.includes("Rs 1,500"), JSON.stringify(bookedMails.map((m) => m.text)));
+      const allProvText = mailbox.filter(toProv).map((m) => m.text + m.head).join("\n");
+      check("provider emails contain nothing about the customer",
+        !/Secret Customer|secret\.customer|9998887|Hidden Lane|Lahore/i.test(allProvText), allProvText);
+
+      r = await call("GET", "/api/admin/payouts", { cookie });
+      check("admin Payouts carry the provider's email and payout details", r.status === 200 && r.data.payouts.every((p) => "provider_email" in p && "payout_details" in p));
+      await call("PATCH", `/api/admin/orders/${pOrder}/payment`, { cookie, body: { payment_status: "paid" } });
+      await call("PATCH", `/api/admin/orders/${pOrder}/status`, { cookie, body: { status: "delivered" } });
+      await call("POST", `/api/admin/orders/${pOrder}/return`, { cookie, body: {} });
+      r = await call("GET", "/api/admin/payouts", { cookie });
+      const myPayout = r.data.payouts.find((p) => p.order_id === pOrder);
+      check("...and the right details sit on the right payout", myPayout?.payout_details === "JazzCash 0300 1112223" && myPayout?.provider_email === PROV, JSON.stringify(myPayout));
+      mailbox.length = 0;
+      await call("POST", `/api/admin/payouts/${myPayout.id}/mark-paid`, { cookie, body: {} });
+      await settle();
+      const paidMail = mailbox.find(toProv);
+      check("marking a payout paid emails the provider the amount, without their bank details",
+        !!paidMail && paidMail.text.includes("Rs 1,500") && !paidMail.text.includes("1112223"), paidMail?.text);
+
+      r = await call("GET", "/api/items");
+      check("public responses never carry payout details", !JSON.stringify(r.data).includes("JazzCash"));
+      r = await call("GET", `/api/orders/${pOrder}?email=secret.customer@example.com`);
+      check("...nor does order tracking", !JSON.stringify(r.data).includes("JazzCash") && !JSON.stringify(r.data).includes(PROV));
+      mailbox.length = 0;
+      mailbox.push(...savedMail);
+    }
+
+    // ---------------- Book shipment (real tracking number) + backups ----------------
+    {
+      const settle = async () => { for (let seen = -1; seen !== mailbox.length; ) { seen = mailbox.length; await sleep(400); } };
+      await settle();
+      const savedMail = mailbox.slice();
+      mailbox.length = 0;
+      r = await call("POST", "/api/orders", { body: { item_id: "blouse-01", type: "rent", rent_start_date: isoDay(900), rent_end_date: isoDay(901), payment_method: "cod", customer: { name: "Ship Person", email: "ship.person@example.com", phone: "1", shipping_address: "9 Road" } } });
+      const sOrder = r.data?.order_id;
+      r = await call("POST", `/api/admin/orders/${sOrder}/shipments`, { cookie, body: { direction: "outbound", courier: "  Leopards ", tracking_number: " LP-778899 " } });
+      check("a shipment keeps the courier's real tracking number, trimmed, with no made-up label", r.status === 201 && r.data?.tracking_number === "LP-778899" && r.data?.label_url === null, JSON.stringify(r.data));
+      r = await call("GET", `/api/orders/${sOrder}?email=ship.person@example.com`);
+      check("...and the customer sees that courier and number on the tracking page", r.data?.tracking?.carrier === "Leopards" && r.data?.tracking?.tracking_number === "LP-778899", JSON.stringify(r.data?.tracking));
+      await settle();
+      const shipMail = mailbox.find((m) => m.rcpt === "ship.person@example.com" && m.text.includes("LP-778899"));
+      check("...and is emailed to the customer", !!shipMail && shipMail.text.includes("LP-778899") && shipMail.text.includes("Leopards"), shipMail?.text);
+      r = await call("POST", `/api/admin/orders/${sOrder}/shipments`, { cookie, body: { direction: "outbound", courier: "TCS", tracking_number: "x".repeat(80) } });
+      check("an overlong tracking number -> 422", r.status === 422);
+      r = await call("POST", `/api/admin/orders/${sOrder}/shipments`, { cookie, body: { direction: "outbound", courier: { a: 1 } } });
+      check("a non-text courier -> 422", r.status === 422);
+      await call("PATCH", `/api/admin/orders/${sOrder}/status`, { cookie, body: { status: "cancelled" } });
+      r = await call("POST", `/api/admin/orders/${sOrder}/shipments`, { cookie, body: { direction: "outbound", courier: "TCS", tracking_number: "T1" } });
+      check("nothing can be shipped for a cancelled order (409)", r.status === 409 && r.data?.error?.code === "order_cancelled", JSON.stringify(r.data));
+      mailbox.length = 0;
+      mailbox.push(...savedMail);
+
+      // -- backups --
+      r = await call("GET", "/api/admin/backup", { cookie: null });
+      check("downloading a backup needs an admin session (401)", r.status === 401);
+      r = await call("GET", "/api/admin/backups", { cookie: null });
+      check("listing backups needs an admin session (401)", r.status === 401);
+      r = await call("GET", "/api/admin/backup", { cookie });
+      const bytes = Buffer.from(await r.res.arrayBuffer());
+      check("the backup download is an attachment holding a real SQLite file",
+        r.status === 200 && /attachment; filename="wearshare-backup-.*\.sqlite"/.test(r.res.headers.get("content-disposition") || "") && bytes.subarray(0, 15).toString() === "SQLite format 3" && r.res.headers.get("cache-control") === "no-store");
+      {
+        const fs = require("node:fs"); const os = require("node:os"); const path = require("node:path");
+        const { DatabaseSync } = require("node:sqlite");
+        const f = path.join(os.tmpdir(), `ws-dl-${process.pid}.sqlite`);
+        fs.writeFileSync(f, bytes);
+        const copy = new DatabaseSync(f);
+        const n = copy.prepare("SELECT COUNT(*) AS n FROM orders").get().n;
+        const live = (await call("GET", "/api/admin/orders", { cookie })).data?.orders?.length;
+        copy.close(); fs.unlinkSync(f);
+        check("...and the copy contains the same orders as the live site", n > 0 && n === live, `${n} vs ${live}`);
+      }
+      r = await call("POST", "/api/admin/backups", { cookie, body: {} });
+      check("'save a copy now' writes a backup file on the server", r.status === 201 && /^wearshare-.*\.sqlite$/.test(r.data?.name || "") && r.data?.size > 0, JSON.stringify(r.data));
+      r = await call("GET", "/api/admin/backups", { cookie });
+      check("...and it shows in the list, newest first", r.status === 200 && r.data.backups.length >= 1 && r.data.backups[0].name.startsWith("wearshare-") && r.data.keep === 14, JSON.stringify(r.data));
+      r = await call("GET", "/wearshare-backups/anything.sqlite");
+      check("backup files are never served by the website", r.status === 404 || r.status === 403 || (r.res.headers.get("content-type") || "").includes("json"));
+
+      const bk = require("../routes/backup");
+      const { DatabaseSync } = require("node:sqlite");
+      const fs = require("node:fs"); const os = require("node:os"); const path = require("node:path");
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ws-bk-"));
+      const mem = new DatabaseSync(":memory:");
+      mem.exec("CREATE TABLE t (x TEXT); INSERT INTO t VALUES ('hello')");
+      process.env.BACKUP_KEEP = "3";
+      for (let i = 0; i < 5; i++) bk.makeBackup(mem, dir, new Date(2026, 0, 1, 10, 0, i * 10));
+      const kept = bk.listBackups(dir);
+      check("only the newest BACKUP_KEEP copies are kept", kept.length === 3 && kept[0].name > kept[2].name && kept[0].name.includes("100040"), JSON.stringify(kept.map((k) => k.name)));
+      const chk = new DatabaseSync(path.join(dir, kept[0].name));
+      check("a saved copy opens and holds the data", chk.prepare("SELECT x FROM t").get().x === "hello");
+      chk.close();
+      check("the daily check skips when a recent copy exists", bk.backupIfStale(mem, dir, 20) === null);
+      fs.writeFileSync(path.join(dir, "notes.txt"), "keep me");
+      process.env.BACKUP_KEEP = "1";
+      bk.prune(dir);
+      check("pruning only touches backup files, never other files", fs.existsSync(path.join(dir, "notes.txt")) && bk.listBackups(dir).length === 1);
+      delete process.env.BACKUP_KEEP;
+      fs.rmSync(dir, { recursive: true, force: true });
+      mem.close();
+    }
+
+    // ---------------- Spreadsheet export (CSV) ----------------
+    {
+      const parseCsv = (text) => {
+        const rows = []; let row = [], cur = "", q = false;
+        text = text.replace(/^\uFEFF/, "");
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          if (q) { if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+          else if (ch === '"') q = true;
+          else if (ch === ",") { row.push(cur); cur = ""; }
+          else if (ch === "\r") { /* skip */ }
+          else if (ch === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; }
+          else cur += ch;
+        }
+        return rows;
+      };
+      for (const kind of ["orders", "payouts", "listings"]) {
+        r = await call("GET", `/api/admin/export/${kind}`, { cookie: null });
+        check(`exporting ${kind} needs an admin session (401)`, r.status === 401);
+      }
+      r = await call("POST", "/api/orders", { body: { item_id: "blouse-01", type: "rent", rent_start_date: isoDay(950), rent_end_date: isoDay(951), payment_method: "cod", customer: { name: "=HYPERLINK(\"http://evil.example\",\"x\")", email: "csv.person@example.com", phone: "+92 300 1234567", shipping_address: "Flat 4, \"Rose\" Lane,\nLahore" } } });
+      const csvOrder = r.data?.order_id;
+      r = await call("GET", "/api/admin/export/orders", { cookie });
+      const raw = Buffer.from(await r.res.arrayBuffer()).toString("utf8");
+      check("the orders export is a downloadable UTF-8 CSV (with a byte-order mark for Excel)",
+        r.status === 200 && (r.res.headers.get("content-type") || "").startsWith("text/csv") && /attachment; filename="wearshare-orders-\d{4}-\d{2}-\d{2}\.csv"/.test(r.res.headers.get("content-disposition") || "") && raw.charCodeAt(0) === 0xfeff && r.res.headers.get("cache-control") === "no-store");
+      const table = parseCsv(raw);
+      const live = (await call("GET", "/api/admin/orders", { cookie })).data?.orders?.length;
+      check("...with a header row and one row per order", table[0][0] === "Order" && table.length - 1 === live && table.every((x) => x.length === table[0].length), `${table.length - 1} vs ${live}`);
+      const mine = table.find((x) => x[0] === csvOrder);
+      const col = (name) => table[0].indexOf(name);
+      check("...commas, quotes and line breaks inside a cell stay in that cell", mine?.[col("Address")] === 'Flat 4, "Rose" Lane,\nLahore', JSON.stringify(mine));
+      check("...text that would run as a formula is neutralised", mine?.[col("Customer")].startsWith("'=HYPERLINK"), mine?.[col("Customer")]);
+      check("...but an ordinary phone number is left as it is", mine?.[col("Phone")] === "+92 300 1234567", mine?.[col("Phone")]);
+      check("...amounts are plain numbers (items + delivery = total)", Number(mine?.[col("Items total (Rs)")]) + Number(mine?.[col("Delivery fee (Rs)")]) === Number(mine?.[col("Total (Rs)")]) && Number(mine?.[col("Total (Rs)")]) > 0, JSON.stringify(mine));
+      r = await call("GET", "/api/admin/export/payouts", { cookie });
+      const pt = parseCsv(Buffer.from(await r.res.arrayBuffer()).toString("utf8"));
+      const pl = (await call("GET", "/api/admin/payouts", { cookie })).data?.payouts?.length;
+      check("the payouts export has every payout with the provider's payout details column", r.status === 200 && pt[0].includes("Pay to") && pt.length - 1 === pl && pt.slice(1).every((x) => Number(x[pt[0].indexOf("Amount (Rs)")]) > 0), `${pt.length - 1} vs ${pl}`);
+      r = await call("GET", "/api/admin/export/listings", { cookie });
+      const lt = parseCsv(Buffer.from(await r.res.arrayBuffer()).toString("utf8"));
+      const li = (await call("GET", "/api/admin/items", { cookie })).data?.items?.length;
+      check("the listings export has every item, intake ones included", r.status === 200 && lt[0][1] === "Name" && lt.length - 1 === li, `${lt.length - 1} vs ${li}`);
+      const ex = require("../routes/admin-export");
+      check("an empty or missing value becomes an empty cell, 0 stays 0", ex.cell(null) === "" && ex.cell(undefined) === "" && ex.cell(0) === "0" && ex.cell(-5) === "-5");
+      check("negative numbers are real numbers, but a text '-1+1' is neutralised", ex.cell("-1+1") === "'-1+1");
+    }
+
     // ---------------- Public site info ----------------
     r = await call("GET", "/api/site");
-    check("the public site info gives the contact details and the late-fee rule, and nothing else",
+    check("the public site info gives the contact details, delivery charge and late-fee rule, and nothing else",
       r.status === 200 && r.data?.contact?.email === "help@example.com" && r.data?.contact?.whatsapp === "+92 300 0000000" && r.data?.contact?.phone === null &&
-      r.data?.late_fee?.mode === "daily_rent" && Object.keys(r.data).sort().join() === "contact,late_fee", JSON.stringify(r.data));
+      r.data?.late_fee?.mode === "daily_rent" && Object.keys(r.data).sort().join() === "contact,delivery,late_fee" && r.data?.delivery?.fee === 0, JSON.stringify(r.data));
     check("customer emails end with the contact details", /Questions\? Write to help@example\.com or WhatsApp \+92 300 0000000/.test(mailbox.find((m) => m.rcpt === "mallory@example.com")?.text || ""));
 
     // ---------------- Cancelling, refunds, returns, late fees ----------------

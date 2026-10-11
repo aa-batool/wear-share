@@ -32,6 +32,8 @@ Later changes: copy the new files into the folder, commit and push in GitHub Des
 4. Click **Apply**. The first build takes a few minutes. When it says **Live**, open the address at the top (it looks like `https://wearshare-preview-xxxx.onrender.com`).
 5. Your browser asks for a username and password. Type anything as the username and your `SITE_PASSWORD` as the password. You should see the shop with the demo items.
 
+**If the build fails with "No such built-in module: node:sqlite":** Render is using a Node version that's too old. In the service's **Environment** tab set `NODE_VERSION` to `22.18.0` (or newer), save, and choose **Manual Deploy > Clear build cache & deploy**. The project also contains a `.node-version` file saying the same thing.
+
 **Check the visitor-address setting (one minute, important).** The site limits repeated login attempts per visitor, so it must know who the visitor really is.
 1. Go to `/admin`, sign in, then open `/api/admin/client-ip` on the same address.
 2. `seen_as` should be **your own public IP address** (search "what is my IP" to compare), not something starting with `10.` or `172.`.

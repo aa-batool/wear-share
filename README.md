@@ -115,7 +115,7 @@ The folder layout follows the planning documents listed under [Documentation](#d
 
 ### Prerequisites
 
-- **Node.js 22.5+** (for built-in SQLite support without extra installs). Check with:
+- **Node.js 22.13 or newer** (for built-in SQLite support without extra installs; older 22.x versions need a special flag). Check with:
   ```
   node --version
   ```

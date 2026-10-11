@@ -9,6 +9,6 @@
     "test:hosting": "node backend/test/hosting.js"
   },
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.13.0"
   }
 }
