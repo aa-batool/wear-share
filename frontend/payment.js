@@ -44,7 +44,7 @@ async function initPayment() {
   const draft = readDraft();
   const itemParam = new URLSearchParams(location.search).get("item");
   if (!draft || draft.item_id !== itemParam) {
-    root.innerHTML = `<div class="empty-state">There's nothing to pay for yet. <a href="index.html">Pick a piece from the closet</a> first.</div>`;
+    root.innerHTML = `<div class="empty-state">There's nothing to pay for yet. <a href="index.html">Pick a piece from the Closet</a> first.</div>`;
     return;
   }
 
@@ -69,7 +69,7 @@ async function initPayment() {
       root,
       "This piece is no longer available.",
       `<p>It may have just been bought or taken off the closet. Nothing was ordered.</p>
-       <p><a href="index.html" style="color: var(--chambray); text-decoration: underline;">Browse the closet</a></p>`
+       <p><a href="index.html" style="color: var(--chambray); text-decoration: underline;">Browse the Closet</a></p>`
     );
   }
 
@@ -79,7 +79,7 @@ async function initPayment() {
       root,
       "Just missed it.",
       `<p>Someone else bought this piece a moment ago, so it's no longer available. Nothing was ordered.</p>
-       <p><a href="index.html" style="color: var(--chambray); text-decoration: underline;">Browse the closet</a></p>`
+       <p><a href="index.html" style="color: var(--chambray); text-decoration: underline;">Browse the Closet</a></p>`
     );
   }
 

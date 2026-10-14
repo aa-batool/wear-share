@@ -65,8 +65,8 @@ async function initBackups() {
     try {
       const data = await adminApi("/api/admin/backups");
       list.innerHTML = data.backups.length
-        ? `<li>Copies kept on the server (the newest ${data.keep}; one is saved automatically each day):</li>` +
-          data.backups.slice(0, 5).map((b) => `<li>${esc(new Date(b.created).toLocaleString())} — ${esc(kb(b.size))}</li>`).join("")
+        ? `<li class="backup-note">Copies kept on the server (the newest ${data.keep}; one is saved automatically each day):</li>` +
+          data.backups.slice(0, 5).map((b) => `<li><span>${esc(new Date(b.created).toLocaleString())}</span><span>${esc(kb(b.size))}</span></li>`).join("")
         : `<li>No copies saved on the server yet. One is saved automatically each day.</li>`;
     } catch (err) {
       list.innerHTML = `<li>${esc(err.message)}</li>`;
@@ -196,4 +196,39 @@ async function initDashboard() {
     )
     .join("");
   ledger.innerHTML = head + rows;
+}
+
+// Shared page buttons for the admin lists (10 rows a page).
+// const pager = createPager(ledgerEl, render);   then in render():  rows = pager.slice(results)
+// Call pager.reset() when a filter changes so the list goes back to page 1.
+function createPager(ledgerEl, onChange, pageSize = 10) {
+  let page = 1;
+  const el = document.createElement("div");
+  el.className = "pager";
+  ledgerEl.insertAdjacentElement("afterend", el);
+  el.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-page]");
+    if (!b || b.disabled) return;
+    page = Number(b.dataset.page);
+    onChange();
+    ledgerEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  return {
+    reset() { page = 1; },
+    slice(results) {
+      const totalPages = Math.max(1, Math.ceil(results.length / pageSize));
+      if (page > totalPages) page = totalPages;
+      if (totalPages <= 1) {
+        el.innerHTML = "";
+      } else {
+        let html = `<button type="button" data-page="${page - 1}" ${page === 1 ? "disabled" : ""}>Previous</button>`;
+        for (let n = 1; n <= totalPages; n++) {
+          html += `<button type="button" data-page="${n}" class="${n === page ? "current" : ""}" ${n === page ? 'aria-current="page"' : ""}>${n}</button>`;
+        }
+        html += `<button type="button" data-page="${page + 1}" ${page === totalPages ? "disabled" : ""}>Next</button>`;
+        el.innerHTML = html;
+      }
+      return results.slice((page - 1) * pageSize, page * pageSize);
+    },
+  };
 }

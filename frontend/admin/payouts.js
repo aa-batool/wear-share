@@ -27,6 +27,8 @@ async function initPayouts() {
     pendingTotal = data.pending_total; // computed by the server across ALL payouts, whatever the filter
   }
 
+  const pager = createPager(ledger, () => render());
+
   function render() {
     summaryEl.innerHTML = `
       <div class="stat-label">Total owed, not yet paid</div>
@@ -37,6 +39,7 @@ async function initPayouts() {
     countEl.textContent = `${results.length} payout${results.length === 1 ? "" : "s"}`;
 
     if (results.length === 0) {
+      pager.slice([]);
       ledger.innerHTML = `<div class="empty-row">${payouts.length === 0 ? "No payouts yet." : "Nothing matches that filter."}</div>`;
       return;
     }
@@ -46,7 +49,8 @@ async function initPayouts() {
         <span>Provider</span><span>Item</span><span>Order</span><span>Amount</span><span>Status</span><span>Action</span>
       </div>`;
 
-    const rows = results
+    const rows = pager
+      .slice(results)
       .map(
         (p) => `
         <div class="ledger-row payout-row">
@@ -85,7 +89,7 @@ async function initPayouts() {
     });
   }
 
-  statusSelect.addEventListener("change", render);
+  statusSelect.addEventListener("change", () => { pager.reset(); render(); });
 
   ledger.innerHTML = `<div class="empty-row">Loading payouts…</div>`;
   try {

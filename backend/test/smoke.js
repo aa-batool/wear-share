@@ -223,11 +223,11 @@ async function main() {
     // ---------------- Public: catalog ----------------
     let r = await call("GET", "/api/items");
     const ids = (r.data?.items || []).map((i) => i.id).sort();
-    check("catalog lists only public items", JSON.stringify(ids) === JSON.stringify(["blazer-01", "blouse-01", "coat-01", "gown-01"]), ids.join(","));
+    check("catalog lists only public items", ids.length > 20 && ["blazer-01", "blouse-01", "coat-01", "gown-01"].every((x) => ids.includes(x)) && !ids.includes("wrap-01") && !ids.includes("skirt-01") && !ids.includes("gown-03"), ids.join(","));
     check("catalog leaks no provider data", !JSON.stringify(r.data).includes("provider") && !JSON.stringify(r.data).includes("intake_notes"));
 
     r = await call("GET", "/api/items?category=Outerwear");
-    check("category filter", (r.data?.items || []).map((i) => i.id).sort().join() === "blazer-01,coat-01");
+    check("category filter", (r.data?.items || []).map((i) => i.id).sort().join() === ["blazer-01","blazer-02","blazer-03","blazer-04","blazer-05","coat-01","coat-03","coat-04","coat-05","coat-06"].join());
     r = await call("GET", "/api/items?mode=buy");
     check("buy filter excludes rent-only items", !(r.data?.items || []).some((i) => i.id === "blouse-01"));
 
@@ -447,7 +447,7 @@ async function main() {
     r = await call("GET", `/api/items/coat-01/availability?start_date=${isoDay(70)}&end_date=${isoDay(72)}`);
     check("...and so is its availability lookup", r.status === 404, String(r.status));
     r = await call("GET", `/api/orders/${delayedBuyId}?email=${customer.email}`);
-    check("...but the buyer can still track their order", r.status === 200 && r.data?.item_name === "Fawn Wool Overcoat", JSON.stringify(r.data));
+    check("...but the buyer can still track their order", r.status === 200 && r.data?.item_name === "Saffron Wool Overcoat", JSON.stringify(r.data));
     r = await call("POST", "/api/orders", { body: { item_id: "coat-01", payment_method: "cod", type: "buy", acknowledge_delayed_delivery: true, customer: { ...customer, email: "second.buyer@example.com" } } });
     check("a second buyer is told it was just bought (409 item_sold) and no order is made", r.status === 409 && r.data?.error?.code === "item_sold", JSON.stringify(r.data));
     r = await call("POST", "/api/orders", { body: { item_id: "coat-01", payment_method: "cod", type: "rent", rent_start_date: isoDay(80), rent_end_date: isoDay(82), customer } });
@@ -458,7 +458,7 @@ async function main() {
     r = await call("PATCH", `/api/admin/orders/${delayedBuyId}/status`, { cookie, body: { status: "cancelled" } });
     check("cancelling the purchase", r.status === 200);
     r = await call("GET", "/api/items/coat-01");
-    check("...puts the piece straight back in the shop", r.status === 200 && r.data?.name === "Fawn Wool Overcoat", String(r.status));
+    check("...puts the piece straight back in the shop", r.status === 200 && r.data?.name === "Saffron Wool Overcoat", String(r.status));
 
     r = await call("GET", "/api/items/gown-01");
     check("an unreturned rental (no fixed date) gives a delayed-delivery notice without a date",
@@ -499,7 +499,7 @@ async function main() {
     await waitForMail(4);
     const orderMail = mailbox.find((m) => (m.subject || "").includes(mailOrderId || "nope"));
     check("a new order emails the owner the order, item, total, payment method and customer",
-      !!orderMail && orderMail.text.includes("Ivory Silk Blouse") && orderMail.text.includes("Rs 4,200") && /Cash on delivery/.test(orderMail.text) && orderMail.text.includes("mallory@example.com"), orderMail?.text);
+      !!orderMail && orderMail.text.includes("Rose Silk Blouse") && orderMail.text.includes("Rs 4,200") && /Cash on delivery/.test(orderMail.text) && orderMail.text.includes("mallory@example.com"), orderMail?.text);
     check("text a customer typed can't add email headers or end the message early",
       !!orderMail && !/^Bcc:/mi.test(orderMail.head) && orderMail.rcpt === "owner-inbox@example.com" && orderMail.text.includes("QUIT"), orderMail?.head);
 
@@ -507,7 +507,7 @@ async function main() {
     const toCustomer = (m) => m.rcpt === "mallory@example.com";
     const confirmMail = mailbox.find((m) => toCustomer(m) && (m.subject || "").includes(mailOrderId));
     check("the customer gets an order confirmation at the address they gave, and only they see it",
-      !!confirmMail && confirmMail.to === "mallory@example.com" && confirmMail.text.includes(mailOrderId) && confirmMail.text.includes("Ivory Silk Blouse") && confirmMail.text.includes("Rs 4,200") && /cash on delivery/i.test(confirmMail.text) && !/Bcc:/i.test(confirmMail.head), confirmMail?.text);
+      !!confirmMail && confirmMail.to === "mallory@example.com" && confirmMail.text.includes(mailOrderId) && confirmMail.text.includes("Rose Silk Blouse") && confirmMail.text.includes("Rs 4,200") && /cash on delivery/i.test(confirmMail.text) && !/Bcc:/i.test(confirmMail.head), confirmMail?.text);
     check("the owner's copy still goes only to the owner",
       mailbox.filter((m) => !toCustomer(m) && m.rcpt !== "provider.person@example.com").every((m) => m.rcpt === "owner-inbox@example.com"), JSON.stringify(mailbox.map((m) => m.rcpt)));
     check("customer emails say nothing about providers", !mailbox.filter(toCustomer).some((m) => /provider/i.test(m.text) || m.text.includes("provider.person")));
@@ -926,7 +926,7 @@ async function main() {
     r = await call("PATCH", `/api/admin/orders/${po1}/payment`, { cookie, body: { payment_status: "paid" } });
     let pays = await payoutsFor(po1);
     check("...marking it paid creates the provider's payout: 50% of Rs 2,800, pending, with the provider and item named",
-      pays.length === 1 && pays[0].amount === 1400 && pays[0].status === "pending" && !!pays[0].provider_name && pays[0].item_name === "Ivory Silk Blouse", JSON.stringify(pays));
+      pays.length === 1 && pays[0].amount === 1400 && pays[0].status === "pending" && !!pays[0].provider_name && pays[0].item_name === "Rose Silk Blouse", JSON.stringify(pays));
     r = await call("PATCH", `/api/admin/orders/${po1}/status`, { cookie, body: { status: "completed" } });
     check("completing it afterwards doesn't create a second payout", (await payoutsFor(po1)).length === 1);
     r = await call("GET", `/api/admin/orders/${po1}`, { cookie });

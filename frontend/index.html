@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WearShare — rent or buy secondhand, anonymously</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -14,7 +14,7 @@
     <div class="wrap">
       <div class="wordmark">WearShare<small>rent it or buy it, no names attached</small></div>
       <nav class="site-nav">
-        <a href="index.html">Browse the closet</a>
+        <a href="index.html">Browse the Closet</a>
         <a href="intake.html">Send us your clothes</a>
         <a href="track-order.html">Track your order</a>
       </nav>
@@ -29,17 +29,39 @@
           We take in real clothes from real people, photograph and list every piece ourselves, and
           ship every order out. Whoever sent it in and whoever ends up with it never trade names.
         </p>
+        <div class="hero-cta">
+          <a class="btn-gold" href="#closet">Browse the Closet</a>
+          <a class="btn-line" href="intake.html">Send us your clothes</a>
+        </div>
       </div>
-      <div class="hero-tag tag">
-        <div class="tag-title">How every order moves</div>
-        <div class="tag-row"><span class="k">From</span><span class="v">Anonymous</span></div>
-        <div class="tag-row"><span class="k">To</span><span class="v">You</span></div>
-        <div class="tag-row"><span class="k">Handled by</span><span class="v">Us, door to door</span></div>
+      <div class="hero-hang" aria-label="How every order moves">
+        <div class="hero-tag tag">
+          <div class="tag-title">How every order moves</div>
+          <div class="tag-row"><span class="k">From</span><span class="v">Anonymous</span></div>
+          <div class="tag-row"><span class="k">To</span><span class="v">You</span></div>
+          <div class="tag-row"><span class="k">Handled by</span><span class="v">Us, door to door</span></div>
+          <p class="tag-foot">Neither side ever sees the other's name.</p>
+        </div>
       </div>
     </div>
   </section>
 
+  <section class="assurances" aria-label="How WearShare works">
+    <div class="wrap">
+      <ul>
+        <li><strong>Rent by the day, or buy</strong><span>Pick your dates on the calendar, or buy the piece outright.</span></li>
+        <li><strong>Photographed and listed by us</strong><span>Nobody uploads directly, so we see every piece before you do.</span></li>
+        <li><strong>No names exchanged</strong><span>The person who sent a piece in never learns who has it, and you never learn who sent it.</span></li>
+        <li><strong>Pay your way</strong><span>Cash on delivery, or an online transfer. You choose at checkout.</span></li>
+      </ul>
+    </div>
+  </section>
+
   <div class="wrap">
+    <div class="section-head" id="closet">
+      <h2>The Closet</h2>
+      <p>Every piece below is in our hands and ready to go out.</p>
+    </div>
     <div class="filters">
       <div class="filter-field">
         <label for="f-category">Category</label>

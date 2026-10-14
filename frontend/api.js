@@ -222,7 +222,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const info = await loadSiteInfo();
   const line = document.createElement("span");
   line.className = "footer-contact";
-  line.innerHTML = `${info ? `Contact us: ${contactHtml(info)} · ` : ""}<a href="policies.html">Policies</a>`;
+  line.innerHTML = `<div class="footer-links"><a href="index.html">Browse the Closet</a><a href="intake.html">Send us your clothes</a><a href="track-order.html">Track your order</a><a href="policies.html">Policies</a></div>${info ? `Contact us: ${contactHtml(info)}` : ""}`;
   footer.appendChild(line);
 });
 
@@ -235,3 +235,12 @@ function statusLabel(status) {
 function showLoadError(container, err) {
   container.innerHTML = `<div class="empty-state">${esc(err.message)}</div>`;
 }
+
+
+// Underline the current page in the header menu.
+document.addEventListener("DOMContentLoaded", () => {
+  const here = location.pathname.split("/").pop() || "index.html";
+  document.querySelectorAll(".site-nav a").forEach((a) => {
+    if (a.getAttribute("href") === here) a.classList.add("current");
+  });
+});

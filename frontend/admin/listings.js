@@ -207,10 +207,37 @@ async function initListings() {
       </div>`;
   }
 
+  // Listings are shown 10 to a page, with page buttons underneath.
+  const PAGE_SIZE = 10;
+  let page = 1;
+  const pager = document.createElement("div");
+  pager.className = "pager";
+  ledger.insertAdjacentElement("afterend", pager);
+  pager.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-page]");
+    if (!b || b.disabled) return;
+    page = Number(b.dataset.page);
+    render();
+    ledger.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  function renderPager(totalPages) {
+    if (totalPages <= 1) { pager.innerHTML = ""; return; }
+    let html = `<button type="button" data-page="${page - 1}" ${page === 1 ? "disabled" : ""}>Previous</button>`;
+    for (let n = 1; n <= totalPages; n++) {
+      html += `<button type="button" data-page="${n}" class="${n === page ? "current" : ""}" ${n === page ? 'aria-current="page"' : ""}>${n}</button>`;
+    }
+    html += `<button type="button" data-page="${page + 1}" ${page === totalPages ? "disabled" : ""}>Next</button>`;
+    pager.innerHTML = html;
+  }
+
   function render() {
     captureOpenPanel();
     const results = items.filter(matches);
     countEl.textContent = `${results.length} listing${results.length === 1 ? "" : "s"}`;
+    const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
+    if (page > totalPages) page = totalPages;
+    renderPager(totalPages);
 
     if (results.length === 0) {
       ledger.innerHTML = `<div class="empty-row">${items.length === 0 ? "No listings yet." : "Nothing matches those filters."}</div>`;
@@ -223,6 +250,7 @@ async function initListings() {
       </div>`;
 
     const rows = results
+      .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
       .map(
         (item) => `
         <div class="ledger-row listing-row">
@@ -412,8 +440,8 @@ async function initListings() {
     });
   }
 
-  [statusSelect, categorySelect].forEach((el) => el.addEventListener("change", render));
-  searchInput.addEventListener("input", render);
+  [statusSelect, categorySelect].forEach((el) => el.addEventListener("change", () => { page = 1; render(); }));
+  searchInput.addEventListener("input", () => { page = 1; render(); });
 
   ledger.innerHTML = `<div class="empty-row">Loading listings…</div>`;
   try {

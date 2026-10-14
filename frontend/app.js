@@ -26,8 +26,8 @@ function renderPhoto(item, src) {
   const color = /^#[0-9a-fA-F]{6}$/.test(item.color) ? item.color : "#8a7350";
   const stroke = shade(color, 34);
   return `
-    <svg viewBox="0 0 300 380" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${esc(item.name)}">
-      <rect width="300" height="380" fill="${color}"></rect>
+    <svg viewBox="0 0 300 380" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(item.name)}">
+      <rect x="-300" y="-300" width="900" height="980" fill="${color}"></rect>
       <path d="${path}" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linejoin="round"></path>
     </svg>`;
 }
@@ -171,7 +171,7 @@ async function initCatalog() {
   const modeSelect = document.getElementById("f-mode");
   const countEl = document.getElementById("result-count");
 
-  grid.innerHTML = `<div class="empty-state">Loading the closet…</div>`;
+  grid.innerHTML = `<div class="empty-state">Loading the Closet…</div>`;
 
   let items;
   try {
@@ -203,8 +203,23 @@ async function initCatalog() {
     return true;
   }
 
+  // Show five rows at a time; "Show more" adds five more. Items per row follows the screen width.
+  const ROWS_PER_PAGE = 5;
+  let rowsShown = ROWS_PER_PAGE;
+  const moreWrap = document.createElement("div");
+  moreWrap.className = "show-more";
+  moreWrap.hidden = true;
+  moreWrap.innerHTML = `<button type="button" class="btn-line-dark">Show more</button>`;
+  grid.insertAdjacentElement("afterend", moreWrap);
+  moreWrap.querySelector("button").addEventListener("click", () => {
+    rowsShown += ROWS_PER_PAGE;
+    render();
+  });
+  const columnsNow = () => Math.max(1, getComputedStyle(grid).gridTemplateColumns.split(" ").length);
+
   function render() {
     const results = items.filter(matches);
+    moreWrap.hidden = true;
     countEl.textContent = `${results.length} item${results.length === 1 ? "" : "s"} listed`;
 
     if (results.length === 0) {
@@ -215,16 +230,19 @@ async function initCatalog() {
       return;
     }
 
-    grid.innerHTML = results
+    const limit = columnsNow() * rowsShown;
+    const visible = results.slice(0, limit);
+    moreWrap.hidden = results.length <= limit;
+
+    grid.innerHTML = visible
       .map((item) => {
         const rows = [];
-        rows.push(`<div class="spec-row"><span class="k">Size</span><span class="v">${esc(item.size)}</span></div>`);
-        rows.push(`<div class="spec-row"><span class="k">Condition</span><span class="v">${esc(item.condition)}</span></div>`);
-        if (!item.buyOnly) rows.push(`<div class="spec-row"><span class="k">Rent / day</span><span class="v rent">${esc(formatMoney(item.rentPerDay))}</span></div>`);
-        if (!item.rentOnly) rows.push(`<div class="spec-row"><span class="k">Buy</span><span class="v buy">${esc(formatMoney(item.buyPrice))}</span></div>`);
+        rows.push(`<div class="spec-row meta"><span class="k">Size</span><span class="v">${esc(item.size)}</span></div>`);
+        if (!item.buyOnly) rows.push(`<div class="spec-row price"><span class="k">Rent / day</span><span class="v rent">${esc(formatMoney(item.rentPerDay))}</span></div>`);
+        if (!item.rentOnly) rows.push(`<div class="spec-row price"><span class="k">Buy</span><span class="v buy">${esc(formatMoney(item.buyPrice))}</span></div>`);
 
         return `
-        <a class="item-card tag" href="item.html?id=${encodeURIComponent(item.id)}">
+        <a class="item-card tag" href="item.html?id=${encodeURIComponent(item.id)}" aria-label="${esc(item.name)}">
           <div class="item-photo">${renderPhoto(item)}</div>
           <div class="item-info">
             <div class="item-name">${esc(item.name)}</div>
@@ -235,7 +253,17 @@ async function initCatalog() {
       .join("");
   }
 
-  [categorySelect, sizeSelect, modeSelect].forEach((el) => el.addEventListener("change", render));
+  [categorySelect, sizeSelect, modeSelect].forEach((el) =>
+    el.addEventListener("change", () => {
+      rowsShown = ROWS_PER_PAGE;
+      render();
+    })
+  );
+  let lastCols = columnsNow();
+  window.addEventListener("resize", () => {
+    const c = columnsNow();
+    if (c !== lastCols) { lastCols = c; render(); }
+  });
   render();
 }
 
@@ -255,7 +283,7 @@ async function initDetail() {
     item = normalizeItem(await api(`/api/items/${encodeURIComponent(id || "")}`));
   } catch (err) {
     if (err.code === "item_not_found") {
-      root.innerHTML = `<div class="empty-state">We couldn't find that listing. <a href="index.html">Back to the closet</a>.</div>`;
+      root.innerHTML = `<div class="empty-state">We couldn't find that listing. <a href="index.html">Back to the Closet</a>.</div>`;
     } else {
       showLoadError(root, err);
     }
@@ -285,6 +313,9 @@ async function initDetail() {
     </div>
     <div>
       <h1 class="detail-name">${esc(item.name)}</h1>
+      <div class="detail-price">${
+        !item.buyOnly ? `${esc(formatMoney(item.rentPerDay))} a day${!item.rentOnly ? `<small>or ${esc(formatMoney(item.buyPrice))} to buy</small>` : ""}` : esc(formatMoney(item.buyPrice))
+      }</div>
       <p class="detail-desc">${esc(item.description)}</p>
 
       <div class="spec-sheet">
@@ -423,19 +454,23 @@ async function initDetail() {
   function renderPanel() {
     if (mode === "rent") {
       panel.innerHTML = `
-        <div class="availability-block">
-          <div class="availability-heading">Availability</div>
-          <div id="cal-container"></div>
+        <div class="rent-layout">
+          <div class="availability-block">
+            <div class="availability-heading">Availability</div>
+            <div id="cal-container"></div>
+          </div>
+          <div class="rent-summary">
+            <div class="order-row">
+              <label>Your dates</label>
+              <span id="date-range"></span>
+            </div>
+            <div class="conflict-warning" id="conflict-warning">
+              Those dates overlap an existing booking — pick a different start or end date.
+            </div>
+            <div class="total-row"><span>Total</span><span id="price">—</span></div>
+            <button class="cta" id="cta">Request to rent</button>
+          </div>
         </div>
-        <div class="order-row">
-          <label>Your dates</label>
-          <span id="date-range"></span>
-        </div>
-        <div class="conflict-warning" id="conflict-warning">
-          Those dates overlap an existing booking — pick a different start or end date.
-        </div>
-        <div class="total-row"><span>Total</span><span id="price">—</span></div>
-        <button class="cta" id="cta">Request to rent</button>
       `;
       renderCalendarSection();
       updateRentSummary();

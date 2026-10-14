@@ -207,11 +207,14 @@ async function initOrders() {
       </div>`;
   }
 
+  const pager = createPager(ledger, () => render());
+
   function render() {
     const results = orders.filter(matches);
     countEl.textContent = `${results.length} order${results.length === 1 ? "" : "s"}`;
 
     if (results.length === 0) {
+      pager.slice([]);
       ledger.innerHTML = `<div class="empty-row">${orders.length === 0 ? "No orders yet." : "Nothing matches those filters."}</div>`;
       return;
     }
@@ -221,7 +224,8 @@ async function initOrders() {
         <span>Item</span><span>Type</span><span>Customer</span><span>Dates</span><span>Status</span><span>Total</span><span>Actions</span>
       </div>`;
 
-    const rows = results
+    const rows = pager
+      .slice(results)
       .map(
         (o) => `
         <div class="ledger-row order-row">
@@ -420,7 +424,7 @@ async function initOrders() {
     render();
   }
 
-  [statusSelect, typeSelect, showSelect].forEach((el) => el.addEventListener("change", render));
+  [statusSelect, typeSelect, showSelect].forEach((el) => el.addEventListener("change", () => { pager.reset(); render(); }));
 
   document.getElementById("run-reminders").addEventListener("click", async (e) => {
     e.target.disabled = true;
